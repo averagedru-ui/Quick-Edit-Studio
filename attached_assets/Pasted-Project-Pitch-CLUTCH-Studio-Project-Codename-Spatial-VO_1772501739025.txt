@@ -1,0 +1,56 @@
+Project Pitch: CLUTCH Studio
+Project Codename: Spatial VOD Engine
+Target Platform: Web-Based High-Performance Video Editor
+Core Objective: To empower creators to transform long-form gaming VODs into high-production vertical content (TikTok/Shorts/Reels) using a synchronized multi-viewport "Spatial Glass" interface.
+1. Brand Identity & Aesthetic
+• Name: CLUTCH Studio (The "CLUTCH" represents the high-stakes, high-performance nature of gaming).
+• Design Philosophy: "Spatial Glass." The UI should feel like a physical glass interface floating in a dark, neon-lit environment.
+• Primary Palette:
+• Background: Deep Carbon (#0c0c10) with dynamic background blurs.
+• Accent: Neon Lime (#bef264) — used for interactive states, progress fills, and branding.
+• Surface: Semi-transparent white (rgba(255,255,255,0.03)) with high-intensity backdrop-blur (minimum 20px).
+• Typography: High-weight Sans-Serif (Inter/Geist) with heavy use of monospaced fonts for timecodes and coordinate data.
+• Animations: * Splash Screen: A randomized "typing" animation for the name "CLUTCH" followed by an initialization progress bar.
+• Micro-interactions: Interactive elements should scale slightly (scale-105) on hover and "squish" (scale-95) on click.
+• Live Status: Pulsing red record indicators for active sync monitoring.
+2. The Rendering Engine (The "Core")
+The application must handle a Single-Source, Multi-Node Architecture:
+• Master Sync: One master video file feeds multiple "Nodes" (Video Elements).
+• Frame-Perfect Alignment: Every node (Gameplay, Camera, Health Bar, Ammo Counter) must be synced via a high-frequency requestAnimationFrame loop, ensuring sub-100ms latency between viewports.
+• Conditional Mounting: To optimize performance, the engine must only render/mount video nodes that are set to visible: true.
+3. Feature Set & Toolstack
+A. The Layer Matrix (Layer Management)
+A bento-style management panel for the following default layers:
+1. Background (Blur): A blurred, scaled-up version of the VOD to fill vertical space.
+2. Gameplay: The primary high-definition center-cut.
+3. Camera: The facecam node (often masked to a circle or rounded square).
+4. Layer 1 & 2 (HUD Nodes): Dedicated nodes for cropping specific UI elements (Health, Minimaps, Ammo).
+B. The HUD Cropper (Spatial Adjuster)
+A dual-coordinate system for every layer:
+• Source Crop (sX, sY, sW, sH): Defines what part of the 16:9 VOD is being extracted.
+• Target Transform (tX, tY, Scale, Rot): Defines where that crop is placed on the vertical 9:16 canvas.
+• Interactive Visual Overlay: A "Crop Mode" that allows users to drag physical handles on the monitor to define source coordinates.
+C. Pro Audio Mixer
+An integrated Web Audio API stack for every layer:
+• Independent Gains: Control volume per node.
+• 3-Band EQ: High, Mid, and Low-shelf filtering to clean up mic audio or game bass.
+• Stereo Panning: Shift audio nodes in the spatial field.
+• Solo/Mute logic: Quick-toggle isolation for mixing.
+D. Snippet Deck (The "Clipper")
+A timestamp-based collection tool:
+• Users can "mark" segments of the VOD.
+• The deck stores the start and end times alongside a summary.
+• Clicking a snippet instantly seeks the master playhead to that moment.
+4. User Interface (UX) Architecture
+• The Spatial Monitor: A central "Monitor Card" holding the 9:16 phone-shaped frame. Controls (Play, Finish Crop) must be outside the frame to prevent visual obstruction.
+• Unified Sliders: Custom range inputs featuring a "Progress-Fill" (Neon Lime track) to show relative values at a glance.
+• Bento Sidebars: Tools are grouped into "Bento Boxes" (Matrix, Transform, Mixer, Snippet Deck) for a organized, professional feel.
+• The Portal (Pipeline): An overlay view that displays the "Project Manifest"—a clean JSON object containing all coordinates, audio levels, and clip timestamps for hand-off to a rendering farm (FFmpeg/Python).
+5. Technical Requirements for "Service" Handoff
+• Language: React (for state management) + Tailwind CSS (for the glass styling).
+• Icons: Lucide-React (thin stroke for a premium feel).
+• Audio Engine: Web Audio API with BiquadFilterNode and StereoPannerNode.
+• Video Handling: Blob URL imports to keep data local and fast.
+• State Persistence: In-memory state with an "Export to JSON" pipeline.
+6. Pitch Closing Statement
+"CLUTCH Studio is not just a video editor; it is a VOD Reconstruction Engine. It treats a flat video file as a 3D environment where UI elements can be detached, transformed, and re-mixed spatially. It bridges the gap between raw gameplay footage and viral, professional-grade vertical content."
