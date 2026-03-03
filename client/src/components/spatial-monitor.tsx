@@ -20,10 +20,8 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   const rafRef = useRef<number>(0);
   const isDraggingRef = useRef(false);
   const lastTimeUpdateRef = useRef<number>(0);
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const panNodeRef = useRef<StereoPannerNode | null>(null);
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   useEffect(() => {
     if (!videoRef.current || !videoUrl) return;
@@ -32,29 +30,31 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   }, [videoUrl, videoRef]);
 
   useEffect(() => {
-    const video = videoRef.current;
+    const video = videoRef.current as (HTMLVideoElement & { _clutchAudioCtx?: AudioContext; _clutchGain?: GainNode; _clutchPan?: StereoPannerNode }) | null;
     if (!video || !videoUrl) return;
-    if (sourceNodeRef.current) return;
 
-    const ctx = new AudioContext();
-    const source = ctx.createMediaElementSource(video);
-    const gain = ctx.createGain();
-    const pan = new StereoPannerNode(ctx, { pan: 0 });
+    if (video._clutchAudioCtx) {
+      gainNodeRef.current = video._clutchGain || null;
+      panNodeRef.current = video._clutchPan || null;
+      return;
+    }
 
-    source.connect(gain).connect(pan).connect(ctx.destination);
+    try {
+      const ctx = new AudioContext();
+      const source = ctx.createMediaElementSource(video);
+      const gain = ctx.createGain();
+      const pan = new StereoPannerNode(ctx, { pan: 0 });
 
-    audioCtxRef.current = ctx;
-    sourceNodeRef.current = source;
-    gainNodeRef.current = gain;
-    panNodeRef.current = pan;
+      source.connect(gain).connect(pan).connect(ctx.destination);
 
-    return () => {
-      ctx.close();
-      audioCtxRef.current = null;
-      sourceNodeRef.current = null;
-      gainNodeRef.current = null;
-      panNodeRef.current = null;
-    };
+      video._clutchAudioCtx = ctx;
+      video._clutchGain = gain;
+      video._clutchPan = pan;
+      gainNodeRef.current = gain;
+      panNodeRef.current = pan;
+    } catch (e) {
+      console.warn('Web Audio setup skipped:', e);
+    }
   }, [videoUrl, videoRef]);
 
   const activeLayer = layers.find(l => l.id === activeLayerId);
@@ -72,11 +72,11 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   }, [activeLayer?.audio.gain, activeLayer?.audio.muted, activeLayer?.audio.pan, activeLayer?.id]);
 
   useEffect(() => {
-    const video = videoRef.current;
+    const video = videoRef.current as (HTMLVideoElement & { _clutchAudioCtx?: AudioContext }) | null;
     if (!video) return;
     if (isPlaying) {
-      if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume();
+      if (video._clutchAudioCtx?.state === 'suspended') {
+        video._clutchAudioCtx.resume();
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
@@ -231,61 +231,60 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
       />
 
       <div className="relative flex-1 flex items-center justify-center min-h-0 w-full">
-        <div className="relative h-full flex items-center justify-center">
-          <div
-            className="relative rounded-2xl md:rounded-[28px] border-2 border-white/[0.08] bg-black"
-            style={{
-              aspectRatio: '9/16',
-              height: '100%',
-              maxHeight: 520,
-              boxShadow: '0 0 40px rgba(0,0,0,0.5), 0 0 80px rgba(190,242,100,0.03)',
-            }}
-          >
-            <div className="rounded-[14px] md:rounded-[26px] overflow-hidden w-full h-full">
-              <canvas
-                ref={canvasRef}
-                width={CANVAS_W}
-                height={CANVAS_H}
-                className="w-full h-full"
-                data-testid="canvas-preview"
-              />
-            </div>
-
-            {isPlaying && (
-              <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[8px] font-mono text-red-400/80 tracking-wider">LIVE</span>
-              </div>
-            )}
-
-            {!videoUrl && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[14px] md:rounded-[26px]">
-                <div
-                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl flex items-center justify-center mb-3"
-                  style={{ backgroundColor: 'rgba(190,242,100,0.06)', border: '1px dashed rgba(190,242,100,0.15)' }}
-                >
-                  <Upload className="w-5 h-5 md:w-6 md:h-6" style={{ color: 'rgba(190,242,100,0.4)' }} />
-                </div>
-                <p className="text-[10px] md:text-xs font-mono tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  DROP VOD HERE
-                </p>
-                <p className="text-[9px] font-mono mt-1" style={{ color: 'rgba(255,255,255,0.12)' }}>
-                  or use Import button
-                </p>
-                {onRequestImport && (
-                  <button
-                    className="mt-3 flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                    onClick={onRequestImport}
-                    data-testid="button-monitor-import"
-                  >
-                    <Upload className="w-3 h-3" />
-                    Select File
-                  </button>
-                )}
-              </div>
-            )}
+        <div
+          className="relative rounded-2xl md:rounded-[28px] border-2 border-white/[0.08] bg-black"
+          style={{
+            aspectRatio: '9/16',
+            maxHeight: '100%',
+            maxWidth: '100%',
+            height: '100%',
+            boxShadow: '0 0 40px rgba(0,0,0,0.5), 0 0 80px rgba(190,242,100,0.03)',
+          }}
+        >
+          <div className="rounded-[14px] md:rounded-[26px] overflow-hidden w-full h-full">
+            <canvas
+              ref={canvasRef}
+              width={CANVAS_W}
+              height={CANVAS_H}
+              className="w-full h-full"
+              data-testid="canvas-preview"
+            />
           </div>
+
+          {isPlaying && (
+            <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-[8px] font-mono text-red-400/80 tracking-wider">LIVE</span>
+            </div>
+          )}
+
+          {!videoUrl && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[14px] md:rounded-[26px] px-4">
+              <div
+                className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center mb-4"
+                style={{ backgroundColor: 'rgba(190,242,100,0.06)', border: '1px dashed rgba(190,242,100,0.15)' }}
+              >
+                <Upload className="w-6 h-6" style={{ color: 'rgba(190,242,100,0.4)' }} />
+              </div>
+              <p className="text-xs md:text-sm font-mono tracking-wider text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                DROP VOD HERE
+              </p>
+              <p className="text-[10px] font-mono mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
+                or use Import button
+              </p>
+              {onRequestImport && (
+                <button
+                  className="mt-4 flex items-center gap-1.5 px-4 py-2 rounded-md text-[11px] font-mono uppercase tracking-wider transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.6)', backgroundColor: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  onClick={onRequestImport}
+                  data-testid="button-monitor-import"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Select File
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
