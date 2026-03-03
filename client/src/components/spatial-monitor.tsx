@@ -1,7 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
 import { Play, Pause, SkipBack, SkipForward, Upload } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 const CANVAS_W = 540;
 const CANVAS_H = 960;
@@ -215,7 +214,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
 
   return (
     <div
-      className="flex flex-col items-center gap-3 h-full justify-center py-3 px-2"
+      className="flex flex-col items-center h-full justify-center py-2 px-2 md:py-3"
       data-testid="spatial-monitor"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -231,17 +230,18 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         onEnded={() => setIsPlaying(false)}
       />
 
-      <div className="relative flex-1 flex items-center justify-center min-h-0">
-        <div className="relative" style={{ maxHeight: '100%' }}>
+      <div className="relative flex-1 flex items-center justify-center min-h-0 w-full">
+        <div className="relative h-full flex items-center justify-center">
           <div
-            className="relative rounded-[20px] md:rounded-[28px] border-2 border-white/[0.08] bg-black"
+            className="relative rounded-2xl md:rounded-[28px] border-2 border-white/[0.08] bg-black"
             style={{
               aspectRatio: '9/16',
-              height: 'min(100%, 520px)',
+              height: '100%',
+              maxHeight: 520,
               boxShadow: '0 0 40px rgba(0,0,0,0.5), 0 0 80px rgba(190,242,100,0.03)',
             }}
           >
-            <div className="rounded-[18px] md:rounded-[26px] overflow-hidden w-full h-full">
+            <div className="rounded-[14px] md:rounded-[26px] overflow-hidden w-full h-full">
               <canvas
                 ref={canvasRef}
                 width={CANVAS_W}
@@ -252,37 +252,36 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             </div>
 
             {isPlaying && (
-              <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
+              <div className="absolute top-2 right-2 flex items-center gap-1 pointer-events-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-[8px] font-mono text-red-400/80 tracking-wider">LIVE</span>
               </div>
             )}
 
             {!videoUrl && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[18px] md:rounded-[26px]">
+              <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[14px] md:rounded-[26px]">
                 <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-xl flex items-center justify-center mb-3"
                   style={{ backgroundColor: 'rgba(190,242,100,0.06)', border: '1px dashed rgba(190,242,100,0.15)' }}
                 >
-                  <Upload className="w-6 h-6" style={{ color: 'rgba(190,242,100,0.4)' }} />
+                  <Upload className="w-5 h-5 md:w-6 md:h-6" style={{ color: 'rgba(190,242,100,0.4)' }} />
                 </div>
-                <p className="text-xs font-mono tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <p className="text-[10px] md:text-xs font-mono tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
                   DROP VOD HERE
                 </p>
-                <p className="text-[10px] font-mono mt-1" style={{ color: 'rgba(255,255,255,0.12)' }}>
+                <p className="text-[9px] font-mono mt-1" style={{ color: 'rgba(255,255,255,0.12)' }}>
                   or use Import button
                 </p>
                 {onRequestImport && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="mt-4 text-xs"
+                  <button
+                    className="mt-3 flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors"
+                    style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
                     onClick={onRequestImport}
                     data-testid="button-monitor-import"
                   >
-                    <Upload className="w-3.5 h-3.5 mr-1.5" />
+                    <Upload className="w-3 h-3" />
                     Select File
-                  </Button>
+                  </button>
                 )}
               </div>
             )}
@@ -290,8 +289,8 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         </div>
       </div>
 
-      <div className="w-full shrink-0" style={{ maxWidth: 340 }}>
-        <div className="relative mb-2">
+      <div className="w-full shrink-0 mt-1" style={{ maxWidth: 340 }}>
+        <div className="relative mb-1">
           <input
             type="range"
             min={0}
@@ -311,50 +310,45 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between">
           <span
-            className="w-[72px] text-[10px] font-mono"
+            className="text-[9px] font-mono tabular-nums"
             style={{ color: 'rgba(190,242,100,0.6)' }}
             data-testid="text-current-time"
           >
             {formatTime(currentTime)}
           </span>
 
-          <div className="flex items-center gap-0.5">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="w-7 h-7"
+          <div className="flex items-center gap-0">
+            <button
+              className="w-7 h-7 flex items-center justify-center rounded transition-colors"
               onClick={() => skip(-5)}
               data-testid="button-skip-back"
             >
-              <SkipBack className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="w-9 h-9"
+              <SkipBack className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+              style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
               onClick={togglePlay}
               data-testid="button-play-pause"
             >
               {isPlaying
-                ? <Pause className="w-4 h-4 text-white" />
-                : <Play className="w-4 h-4 text-white ml-0.5" />
+                ? <Pause className="w-3.5 h-3.5 text-white" />
+                : <Play className="w-3.5 h-3.5 text-white ml-0.5" />
               }
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="w-7 h-7"
+            </button>
+            <button
+              className="w-7 h-7 flex items-center justify-center rounded transition-colors"
               onClick={() => skip(5)}
               data-testid="button-skip-forward"
             >
-              <SkipForward className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.5)' }} />
-            </Button>
+              <SkipForward className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.5)' }} />
+            </button>
           </div>
 
           <span
-            className="w-[72px] text-[10px] font-mono text-right"
+            className="text-[9px] font-mono tabular-nums"
             style={{ color: 'rgba(255,255,255,0.25)' }}
             data-testid="text-duration"
           >

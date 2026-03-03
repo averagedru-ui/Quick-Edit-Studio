@@ -5,9 +5,7 @@ import SpatialMonitor from '@/components/spatial-monitor';
 import LayerMatrix from '@/components/layer-matrix';
 import { TransformPanel, AudioMixer, SnippetDeck } from '@/components/control-panels';
 import ExportPortal from '@/components/export-portal';
-import { Button } from '@/components/ui/button';
 import { Upload, Download, Layers, Move, Volume2, Scissors } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 type MobileTab = 'layers' | 'transform' | 'audio' | 'clips';
 
@@ -17,20 +15,6 @@ const mobileTabs: { id: MobileTab; label: string; icon: typeof Layers }[] = [
   { id: 'audio', label: 'Audio', icon: Volume2 },
   { id: 'clips', label: 'Clips', icon: Scissors },
 ];
-
-function GlassPanel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn("backdrop-blur-xl", className)}
-      style={{
-        backgroundColor: 'rgba(255,255,255,0.015)',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
-      }}
-    >
-      {children}
-    </div>
-  );
-}
 
 export default function EditorPage() {
   const [showSplash, setShowSplash] = useState(true);
@@ -65,16 +49,16 @@ export default function EditorPage() {
       />
 
       <header
-        className="h-12 shrink-0 flex items-center justify-between px-3 md:px-5"
+        className="h-11 shrink-0 flex items-center justify-between px-3 md:px-5"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.01)' }}
         data-testid="editor-header"
       >
-        <div className="flex items-center gap-2.5">
-          <h1 className="text-base md:text-lg font-black tracking-tight text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <div className="flex items-center gap-2">
+          <h1 className="text-sm md:text-lg font-black tracking-tight text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
             CLUTCH
           </h1>
           <span
-            className="text-[8px] md:text-[9px] font-mono tracking-[0.25em] uppercase"
+            className="text-[8px] font-mono tracking-[0.25em] uppercase"
             style={{ color: 'rgba(190,242,100,0.45)' }}
           >
             Studio
@@ -90,36 +74,49 @@ export default function EditorPage() {
             v1.0
           </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Button size="sm" variant="ghost" onClick={handleImport} data-testid="button-import">
-            <Upload className="w-3.5 h-3.5 mr-1.5" />
-            <span className="hidden sm:inline text-xs">Import</span>
-          </Button>
-          <Button size="sm" onClick={() => setShowExport(true)} data-testid="button-export">
-            <Download className="w-3.5 h-3.5 mr-1.5" />
-            <span className="hidden sm:inline text-xs">Export</span>
-          </Button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleImport}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors"
+            style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            data-testid="button-import"
+          >
+            <Upload className="w-3 h-3" />
+            <span className="hidden sm:inline">Import</span>
+          </button>
+          <button
+            onClick={() => setShowExport(true)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors"
+            style={{ color: '#bef264', backgroundColor: 'rgba(190,242,100,0.08)', border: '1px solid rgba(190,242,100,0.15)' }}
+            data-testid="button-export"
+          >
+            <Download className="w-3 h-3" />
+            <span className="hidden sm:inline">Export</span>
+          </button>
         </div>
       </header>
 
       {/* Desktop Layout */}
       <div className="flex-1 hidden md:flex overflow-hidden">
-        {/* Left Panel */}
-        <GlassPanel className="w-56 lg:w-60 shrink-0 flex flex-col overflow-hidden">
+        <div
+          className="w-56 lg:w-60 shrink-0 flex flex-col overflow-hidden backdrop-blur-xl"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.015)',
+            borderRight: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
           <div className="flex-1 overflow-auto p-3">
             <LayerMatrix />
           </div>
           <div className="overflow-auto p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)', maxHeight: '38%' }}>
             <SnippetDeck />
           </div>
-        </GlassPanel>
+        </div>
 
-        {/* Center - Monitor */}
         <div className="flex-1 overflow-hidden">
           <SpatialMonitor onRequestImport={handleImport} />
         </div>
 
-        {/* Right Panel */}
         <div
           className="w-64 lg:w-72 shrink-0 overflow-auto p-3 space-y-4"
           style={{
@@ -136,14 +133,12 @@ export default function EditorPage() {
 
       {/* Mobile Layout */}
       <div className="flex-1 flex flex-col md:hidden overflow-hidden">
-        {/* Monitor (always visible) */}
-        <div className="shrink-0" style={{ height: '48%' }}>
+        <div className="shrink-0" style={{ height: '45%', minHeight: 200 }}>
           <SpatialMonitor onRequestImport={handleImport} />
         </div>
 
-        {/* Panel content */}
         <div
-          className="flex-1 overflow-auto p-3"
+          className="flex-1 overflow-auto px-3 py-2"
           style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
         >
           {mobileTab === 'layers' && <LayerMatrix />}
@@ -152,10 +147,10 @@ export default function EditorPage() {
           {mobileTab === 'clips' && <SnippetDeck />}
         </div>
 
-        {/* Bottom tab bar */}
         <div
-          className="h-14 shrink-0 flex items-center justify-around px-2"
+          className="shrink-0 flex items-stretch justify-around"
           style={{
+            height: 52,
             borderTop: '1px solid rgba(255,255,255,0.06)',
             backgroundColor: 'rgba(12,12,16,0.95)',
             backdropFilter: 'blur(12px)',
@@ -168,12 +163,15 @@ export default function EditorPage() {
               <button
                 key={tab.id}
                 onClick={() => setMobileTab(tab.id)}
-                className="flex flex-col items-center gap-0.5 py-1 px-3 rounded-md transition-all"
-                style={{ color: isActive ? '#bef264' : 'rgba(255,255,255,0.25)' }}
+                className="flex flex-col items-center justify-center flex-1 transition-all"
+                style={{
+                  color: isActive ? '#bef264' : 'rgba(255,255,255,0.25)',
+                  borderTop: isActive ? '2px solid #bef264' : '2px solid transparent',
+                }}
                 data-testid={`tab-${tab.id}`}
               >
                 <tab.icon className="w-4 h-4" />
-                <span className="text-[9px] font-mono">{tab.label}</span>
+                <span className="text-[9px] font-mono mt-0.5">{tab.label}</span>
               </button>
             );
           })}

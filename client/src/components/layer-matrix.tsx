@@ -1,6 +1,5 @@
 import { useStore, type Layer } from '@/lib/store';
 import { Eye, EyeOff, Lock, Unlock, Monitor, Gamepad2, Camera, LayoutGrid, Grid3X3 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const layerIcons: Record<string, typeof Monitor> = {
@@ -16,7 +15,7 @@ export default function LayerMatrix() {
 
   return (
     <div className="space-y-1" data-testid="layer-matrix">
-      <div className="flex items-center justify-between gap-1 px-1 mb-3">
+      <div className="flex items-center justify-between gap-1 px-1 mb-2">
         <h3
           className="text-[11px] font-mono uppercase tracking-wider"
           style={{ color: 'rgba(255,255,255,0.35)' }}
@@ -39,17 +38,13 @@ export default function LayerMatrix() {
           <div
             key={layer.id}
             onClick={() => setActiveLayerId(layer.id)}
-            className={cn(
-              "flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer transition-all duration-150",
-              isActive
-                ? "border"
-                : "border border-transparent"
-            )}
+            className="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer transition-all duration-150"
             style={isActive ? {
               backgroundColor: 'rgba(190,242,100,0.06)',
-              borderColor: 'rgba(190,242,100,0.12)',
+              border: '1px solid rgba(190,242,100,0.12)',
             } : {
               backgroundColor: 'rgba(255,255,255,0.015)',
+              border: '1px solid transparent',
             }}
             data-testid={`layer-item-${layer.id}`}
           >
@@ -60,14 +55,14 @@ export default function LayerMatrix() {
 
             <div className="flex-1 min-w-0">
               <span className={cn(
-                "text-xs font-medium truncate block",
+                "text-[11px] font-medium truncate block leading-tight",
                 isActive ? "text-white" : "text-white/60"
               )}>
                 {layer.name}
               </span>
               {isActive && (
                 <span
-                  className="text-[8px] font-mono uppercase tracking-wider block mt-0.5"
+                  className="text-[8px] font-mono uppercase tracking-wider block"
                   style={{ color: 'rgba(190,242,100,0.4)' }}
                 >
                   {layer.type}
@@ -75,11 +70,9 @@ export default function LayerMatrix() {
               )}
             </div>
 
-            <div className="flex items-center gap-0.5">
-              <Button
-                size="icon"
-                variant="ghost"
-                className="w-6 h-6"
+            <div className="flex items-center gap-0 shrink-0">
+              <button
+                className="w-6 h-6 flex items-center justify-center rounded transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   updateLayer(layer.id, { visible: !layer.visible });
@@ -90,11 +83,9 @@ export default function LayerMatrix() {
                   ? <Eye className="w-3 h-3" style={{ color: 'rgba(190,242,100,0.5)' }} />
                   : <EyeOff className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.15)' }} />
                 }
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="w-6 h-6"
+              </button>
+              <button
+                className="w-6 h-6 flex items-center justify-center rounded transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
                   updateLayer(layer.id, { locked: !layer.locked });
@@ -105,7 +96,7 @@ export default function LayerMatrix() {
                   ? <Lock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.4)' }} />
                   : <Unlock className="w-3 h-3" style={{ color: 'rgba(255,255,255,0.15)' }} />
                 }
-              </Button>
+              </button>
             </div>
           </div>
         );

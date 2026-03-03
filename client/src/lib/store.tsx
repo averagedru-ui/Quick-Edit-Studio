@@ -162,7 +162,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const updateLayer = useCallback((id: string, updates: Partial<Layer>) => {
     setLayers(prev => prev.map(l => {
       if (l.id !== id) return l;
-      if (l.locked) return l;
+      const metaKeys = ['visible', 'locked'] as const;
+      const isMeta = Object.keys(updates).every(k => (metaKeys as readonly string[]).includes(k));
+      if (l.locked && !isMeta) return l;
       return { ...l, ...updates };
     }));
   }, []);
