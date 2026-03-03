@@ -5,7 +5,7 @@ import SpatialMonitor from '@/components/spatial-monitor';
 import LayerMatrix from '@/components/layer-matrix';
 import { TransformPanel, AudioMixer, SnippetDeck } from '@/components/control-panels';
 import ExportPortal from '@/components/export-portal';
-import { Upload, Download, Layers, Move, Volume2, Scissors } from 'lucide-react';
+import { Upload, Download, Layers, Move, Volume2, Scissors, ChevronUp, ChevronDown } from 'lucide-react';
 
 type MobileTab = 'layers' | 'transform' | 'audio' | 'clips';
 
@@ -19,7 +19,8 @@ const mobileTabs: { id: MobileTab; label: string; icon: typeof Layers }[] = [
 export default function EditorPage() {
   const [showSplash, setShowSplash] = useState(true);
   const [mobileTab, setMobileTab] = useState<MobileTab>('layers');
-  const { setVideoFile, setShowExport } = useStore();
+  const [panelExpanded, setPanelExpanded] = useState(false);
+  const { setVideoFile, setShowExport, previewMode } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = () => fileInputRef.current?.click();
@@ -133,24 +134,49 @@ export default function EditorPage() {
 
       {/* Mobile Layout */}
       <div className="flex-1 flex flex-col md:hidden overflow-hidden">
-        <div className="shrink-0" style={{ height: '45%', minHeight: 200 }}>
+        <div
+          className="shrink-0 transition-all duration-200"
+          style={{ flex: panelExpanded ? '0 0 35%' : '1 1 0%', minHeight: panelExpanded ? 180 : 0 }}
+        >
           <SpatialMonitor onRequestImport={handleImport} />
         </div>
 
         <div
-          className="flex-1 overflow-auto px-3 py-2"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+          className="flex flex-col overflow-hidden transition-all duration-200"
+          style={{
+            flex: panelExpanded ? '1 1 0%' : '0 0 auto',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}
         >
-          {mobileTab === 'layers' && <LayerMatrix />}
-          {mobileTab === 'transform' && <TransformPanel />}
-          {mobileTab === 'audio' && <AudioMixer />}
-          {mobileTab === 'clips' && <SnippetDeck />}
+          <button
+            onClick={() => setPanelExpanded(!panelExpanded)}
+            className="shrink-0 flex items-center justify-center gap-1 py-1.5"
+            style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+            data-testid="button-toggle-panel"
+          >
+            {panelExpanded
+              ? <ChevronDown className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+              : <ChevronUp className="w-3.5 h-3.5" style={{ color: 'rgba(255,255,255,0.3)' }} />
+            }
+            <span className="text-[9px] font-mono uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              {panelExpanded ? 'Collapse' : 'Controls'}
+            </span>
+          </button>
+
+          {panelExpanded && (
+            <div className="flex-1 overflow-auto px-3 py-2">
+              {mobileTab === 'layers' && <LayerMatrix />}
+              {mobileTab === 'transform' && <TransformPanel />}
+              {mobileTab === 'audio' && <AudioMixer />}
+              {mobileTab === 'clips' && <SnippetDeck />}
+            </div>
+          )}
         </div>
 
         <div
           className="shrink-0 flex items-stretch justify-around"
           style={{
-            height: 52,
+            height: 48,
             borderTop: '1px solid rgba(255,255,255,0.06)',
             backgroundColor: 'rgba(12,12,16,0.95)',
             backdropFilter: 'blur(12px)',
@@ -162,11 +188,14 @@ export default function EditorPage() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setMobileTab(tab.id)}
+                onClick={() => {
+                  setMobileTab(tab.id);
+                  setPanelExpanded(true);
+                }}
                 className="flex flex-col items-center justify-center flex-1 transition-all"
                 style={{
-                  color: isActive ? '#bef264' : 'rgba(255,255,255,0.25)',
-                  borderTop: isActive ? '2px solid #bef264' : '2px solid transparent',
+                  color: isActive && panelExpanded ? '#bef264' : 'rgba(255,255,255,0.25)',
+                  borderTop: isActive && panelExpanded ? '2px solid #bef264' : '2px solid transparent',
                 }}
                 data-testid={`tab-${tab.id}`}
               >

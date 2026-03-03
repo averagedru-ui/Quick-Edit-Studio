@@ -108,6 +108,8 @@ const defaultLayers: Layer[] = [
   },
 ];
 
+export type PreviewMode = 'vertical' | 'horizontal';
+
 interface StoreContextType {
   videoFile: File | null;
   videoUrl: string | null;
@@ -118,6 +120,7 @@ interface StoreContextType {
   snippets: Snippet[];
   activeLayerId: string;
   showExport: boolean;
+  previewMode: PreviewMode;
   videoRef: RefObject<HTMLVideoElement | null>;
 
   setVideoFile: (file: File) => void;
@@ -132,6 +135,7 @@ interface StoreContextType {
   addSnippet: (snippet: Omit<Snippet, 'id'>) => void;
   removeSnippet: (id: string) => void;
   setShowExport: (show: boolean) => void;
+  setPreviewMode: (mode: PreviewMode) => void;
   seekTo: (time: number) => void;
 }
 
@@ -147,6 +151,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [activeLayerId, setActiveLayerId] = useState('gameplay');
   const [showExport, setShowExport] = useState(false);
+  const [previewMode, setPreviewMode] = useState<PreviewMode>('vertical');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const setVideoFile = useCallback((file: File) => {
@@ -209,10 +214,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <StoreContext.Provider value={{
       videoFile, videoUrl, videoDuration, currentTime, isPlaying,
-      layers, snippets, activeLayerId, showExport, videoRef,
+      layers, snippets, activeLayerId, showExport, previewMode, videoRef,
       setVideoFile, setVideoDuration, setCurrentTime, setIsPlaying,
       updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio,
-      setActiveLayerId, addSnippet, removeSnippet, setShowExport, seekTo,
+      setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, seekTo,
     }}>
       {children}
     </StoreContext.Provider>

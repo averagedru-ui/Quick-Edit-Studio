@@ -1,9 +1,11 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store';
-import { Play, Pause, SkipBack, SkipForward, Upload } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Upload, Smartphone, Monitor } from 'lucide-react';
 
-const CANVAS_W = 540;
-const CANVAS_H = 960;
+const VERT_W = 540;
+const VERT_H = 960;
+const HORZ_W = 960;
+const HORZ_H = 540;
 
 interface SpatialMonitorProps {
   onRequestImport?: () => void;
@@ -12,9 +14,13 @@ interface SpatialMonitorProps {
 export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps) {
   const {
     videoUrl, videoRef, layers, isPlaying, currentTime, videoDuration,
-    activeLayerId,
+    activeLayerId, previewMode, setPreviewMode,
     setIsPlaying, setCurrentTime, setVideoDuration, setVideoFile,
   } = useStore();
+
+  const isVertical = previewMode === 'vertical';
+  const CANVAS_W = isVertical ? VERT_W : HORZ_W;
+  const CANVAS_H = isVertical ? VERT_H : HORZ_H;
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -92,12 +98,15 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
       return;
     }
 
+    const cw = canvas.width;
+    const ch = canvas.height;
+
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.clearRect(0, 0, cw, ch);
     ctx.fillStyle = '#0c0c10';
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillRect(0, 0, cw, ch);
 
     if (video.readyState >= 2) {
       const vw = video.videoWidth || 1920;
@@ -117,19 +126,19 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         if (layer.type === 'background') {
           ctx.filter = 'blur(12px) brightness(0.35)';
           const scale = layer.target.scale / 100;
-          const drawW = CANVAS_W * scale;
-          const drawH = CANVAS_H * scale;
-          const offsetX = (CANVAS_W - drawW) / 2;
-          const offsetY = (CANVAS_H - drawH) / 2;
+          const drawW = cw * scale;
+          const drawH = ch * scale;
+          const offsetX = (cw - drawW) / 2;
+          const offsetY = (ch - drawH) / 2;
           ctx.drawImage(video, sx, sy, sw, sh, offsetX, offsetY, drawW, drawH);
           ctx.filter = 'none';
         } else {
-          const targetX = (layer.target.x / 100) * CANVAS_W;
-          const targetY = (layer.target.y / 100) * CANVAS_H;
+          const targetX = (layer.target.x / 100) * cw;
+          const targetY = (layer.target.y / 100) * ch;
           const scale = layer.target.scale / 100;
 
           const aspectRatio = sw / (sh || 1);
-          let drawW = CANVAS_W * scale;
+          let drawW = cw * scale;
           let drawH = drawW / aspectRatio;
 
           if (layer.shape === 'circle') {
@@ -211,10 +220,13 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   };
 
   const seekProgress = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0;
+  const aspectRatio = isVertical ? '9/16' : '16/9';
+  const borderRadius = isVertical ? 'rounded-2xl md:rounded-[28px]' : 'rounded-xl md:rounded-2xl';
+  const innerRadius = isVertical ? 'rounded-[14px] md:rounded-[26px]' : 'rounded-[10px] md:rounded-[14px]';
 
   return (
     <div
-      className="flex flex-col items-center h-full justify-center py-2 px-2 md:py-3"
+      className="flex flex-col items-center h-full justify-center py-2 px-3 md:py-3 gap-2"
       data-testid="spatial-monitor"
       onDragOver={(e) => e.preventDefault()}
       onDrop={handleDrop}
@@ -232,16 +244,16 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
 
       <div className="relative flex-1 flex items-center justify-center min-h-0 w-full">
         <div
-          className="relative rounded-2xl md:rounded-[28px] border-2 border-white/[0.08] bg-black"
+          className={`relative ${borderRadius} border-2 border-white/[0.08] bg-black`}
           style={{
-            aspectRatio: '9/16',
+            aspectRatio,
             maxHeight: '100%',
             maxWidth: '100%',
-            height: '100%',
+            ...(isVertical ? { height: '100%' } : { width: '100%' }),
             boxShadow: '0 0 40px rgba(0,0,0,0.5), 0 0 80px rgba(190,242,100,0.03)',
           }}
         >
-          <div className="rounded-[14px] md:rounded-[26px] overflow-hidden w-full h-full">
+          <div className={`${innerRadius} overflow-hidden w-full h-full`}>
             <canvas
               ref={canvasRef}
               width={CANVAS_W}
@@ -258,18 +270,35 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             </div>
           )}
 
+          <div className="absolute top-2 left-2">
+            <button
+              onClick={() => setPreviewMode(isVertical ? 'horizontal' : 'vertical')}
+              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[8px] font-mono uppercase tracking-wider transition-colors"
+              style={{
+                color: 'rgba(190,242,100,0.7)',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(190,242,100,0.15)',
+              }}
+              data-testid="button-preview-mode"
+            >
+              {isVertical ? <Monitor className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
+              {isVertical ? '16:9' : '9:16'}
+            </button>
+          </div>
+
           {!videoUrl && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-[14px] md:rounded-[26px] px-4">
+            <div className={`absolute inset-0 flex flex-col items-center justify-center ${innerRadius} px-6`}>
               <div
                 className="w-14 h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center mb-4"
                 style={{ backgroundColor: 'rgba(190,242,100,0.06)', border: '1px dashed rgba(190,242,100,0.15)' }}
               >
                 <Upload className="w-6 h-6" style={{ color: 'rgba(190,242,100,0.4)' }} />
               </div>
-              <p className="text-xs md:text-sm font-mono tracking-wider text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-sm md:text-base font-mono tracking-wider text-center" style={{ color: 'rgba(255,255,255,0.3)' }}>
                 DROP VOD HERE
               </p>
-              <p className="text-[10px] font-mono mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
+              <p className="text-[11px] font-mono mt-1.5 text-center" style={{ color: 'rgba(255,255,255,0.15)' }}>
                 or use Import button
               </p>
               {onRequestImport && (
@@ -288,7 +317,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         </div>
       </div>
 
-      <div className="w-full shrink-0 mt-1" style={{ maxWidth: 340 }}>
+      <div className="w-full shrink-0" style={{ maxWidth: isVertical ? 340 : 480 }}>
         <div className="relative mb-1">
           <input
             type="range"
