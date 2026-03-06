@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { X, RotateCcw } from 'lucide-react';
 
 function NeonSlider({
   value, min, max, step = 1, onChange, label, displayValue, disabled = false,
@@ -50,8 +50,30 @@ function NeonSlider({
   );
 }
 
+function SectionResetButton({ onClick, disabled, testId }: { onClick: () => void; disabled: boolean; testId: string }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="flex items-center gap-0.5 text-[8px] font-mono uppercase px-1.5 py-0.5 rounded transition-all"
+      style={{
+        color: disabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,150,150,0.8)',
+        backgroundColor: disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,100,100,0.08)',
+        border: `1px solid ${disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,100,100,0.15)'}`,
+      }}
+      data-testid={testId}
+    >
+      <RotateCcw className="w-2.5 h-2.5" />
+      Reset
+    </button>
+  );
+}
+
 export function TransformPanel() {
-  const { layers, activeLayerId, updateLayerSource, updateLayerTarget, updateLayer, resetLayer } = useStore();
+  const {
+    layers, activeLayerId, updateLayerSource, updateLayerTarget, updateLayer,
+    resetLayerSource, resetLayerTarget, resetLayerAppearance,
+  } = useStore();
   const activeLayer = layers.find(l => l.id === activeLayerId);
 
   if (!activeLayer) return null;
@@ -81,19 +103,6 @@ export function TransformPanel() {
               LOCKED
             </span>
           )}
-          <button
-            onClick={() => resetLayer(activeLayer.id)}
-            disabled={isLocked}
-            className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded transition-all"
-            style={{
-              color: isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(255,150,150,0.8)',
-              backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : 'rgba(255,100,100,0.08)',
-              border: `1px solid ${isLocked ? 'rgba(255,255,255,0.04)' : 'rgba(255,100,100,0.15)'}`,
-            }}
-            data-testid="button-reset-layer"
-          >
-            Reset
-          </button>
         </div>
       </div>
 
@@ -101,20 +110,23 @@ export function TransformPanel() {
         className="rounded-md p-3 space-y-2.5"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
       >
-        <h4
-          className="text-[9px] font-mono uppercase tracking-widest mb-2"
-          style={{ color: 'rgba(190,242,100,0.35)' }}
-        >
-          Source Crop
-        </h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4
+            className="text-[9px] font-mono uppercase tracking-widest"
+            style={{ color: 'rgba(190,242,100,0.35)' }}
+          >
+            Source Crop
+          </h4>
+          <SectionResetButton onClick={() => resetLayerSource(activeLayer.id)} disabled={isLocked} testId="button-reset-source" />
+        </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NeonSlider label="sX" value={activeLayer.source.x} min={0} max={100} disabled={isLocked}
+          <NeonSlider label="Source X" value={activeLayer.source.x} min={0} max={100} disabled={isLocked}
             onChange={(v) => updateLayerSource(activeLayer.id, { x: v })} />
-          <NeonSlider label="sY" value={activeLayer.source.y} min={0} max={100} disabled={isLocked}
+          <NeonSlider label="Source Y" value={activeLayer.source.y} min={0} max={100} disabled={isLocked}
             onChange={(v) => updateLayerSource(activeLayer.id, { y: v })} />
-          <NeonSlider label="sW" value={activeLayer.source.w} min={1} max={100} disabled={isLocked}
+          <NeonSlider label="Width" value={activeLayer.source.w} min={1} max={100} disabled={isLocked}
             onChange={(v) => updateLayerSource(activeLayer.id, { w: v })} />
-          <NeonSlider label="sH" value={activeLayer.source.h} min={1} max={100} disabled={isLocked}
+          <NeonSlider label="Height" value={activeLayer.source.h} min={1} max={100} disabled={isLocked}
             onChange={(v) => updateLayerSource(activeLayer.id, { h: v })} />
         </div>
       </div>
@@ -123,23 +135,32 @@ export function TransformPanel() {
         className="rounded-md p-3 space-y-2.5"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
       >
-        <h4
-          className="text-[9px] font-mono uppercase tracking-widest mb-2"
-          style={{ color: 'rgba(190,242,100,0.35)' }}
-        >
-          Target Transform
-        </h4>
+        <div className="flex items-center justify-between mb-2">
+          <h4
+            className="text-[9px] font-mono uppercase tracking-widest"
+            style={{ color: 'rgba(190,242,100,0.35)' }}
+          >
+            Target Transform
+          </h4>
+          <SectionResetButton onClick={() => resetLayerTarget(activeLayer.id)} disabled={isLocked} testId="button-reset-target" />
+        </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NeonSlider label="tX" value={activeLayer.target.x} min={-50} max={100} disabled={isLocked}
+          <NeonSlider label="Position X" value={activeLayer.target.x} min={-50} max={100} disabled={isLocked}
             onChange={(v) => updateLayerTarget(activeLayer.id, { x: v })} />
-          <NeonSlider label="tY" value={activeLayer.target.y} min={-50} max={100} disabled={isLocked}
+          <NeonSlider label="Position Y" value={activeLayer.target.y} min={-50} max={100} disabled={isLocked}
             onChange={(v) => updateLayerTarget(activeLayer.id, { y: v })} />
           <NeonSlider label="Scale" value={activeLayer.target.scale} min={1} max={200} disabled={isLocked}
             displayValue={`${activeLayer.target.scale}%`}
             onChange={(v) => updateLayerTarget(activeLayer.id, { scale: v })} />
-          <NeonSlider label="Rot" value={activeLayer.target.rotation} min={-180} max={180} disabled={isLocked}
+          <NeonSlider label="Rotation" value={activeLayer.target.rotation} min={-180} max={180} disabled={isLocked}
             displayValue={`${activeLayer.target.rotation}\u00B0`}
             onChange={(v) => updateLayerTarget(activeLayer.id, { rotation: v })} />
+          <NeonSlider label="Skew X" value={activeLayer.target.skewX} min={-45} max={45} disabled={isLocked}
+            displayValue={`${activeLayer.target.skewX}\u00B0`}
+            onChange={(v) => updateLayerTarget(activeLayer.id, { skewX: v })} />
+          <NeonSlider label="Skew Y" value={activeLayer.target.skewY} min={-45} max={45} disabled={isLocked}
+            displayValue={`${activeLayer.target.skewY}\u00B0`}
+            onChange={(v) => updateLayerTarget(activeLayer.id, { skewY: v })} />
         </div>
       </div>
 
@@ -147,6 +168,15 @@ export function TransformPanel() {
         className="rounded-md p-3"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
       >
+        <div className="flex items-center justify-between mb-2">
+          <h4
+            className="text-[9px] font-mono uppercase tracking-widest"
+            style={{ color: 'rgba(190,242,100,0.35)' }}
+          >
+            Appearance
+          </h4>
+          <SectionResetButton onClick={() => resetLayerAppearance(activeLayer.id)} disabled={isLocked} testId="button-reset-appearance" />
+        </div>
         <NeonSlider
           label="Opacity"
           value={activeLayer.opacity}
@@ -193,7 +223,7 @@ export function TransformPanel() {
 }
 
 export function AudioMixer() {
-  const { layers, activeLayerId, updateLayerAudio } = useStore();
+  const { layers, activeLayerId, updateLayerAudio, resetLayerAudio } = useStore();
   const activeLayer = layers.find(l => l.id === activeLayerId);
 
   if (!activeLayer) return null;
@@ -230,6 +260,15 @@ export function AudioMixer() {
         className="rounded-md p-3 space-y-3"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
       >
+        <div className="flex items-center justify-between mb-1">
+          <h4
+            className="text-[9px] font-mono uppercase tracking-widest"
+            style={{ color: 'rgba(190,242,100,0.35)' }}
+          >
+            Volume
+          </h4>
+          <SectionResetButton onClick={() => resetLayerAudio(activeLayer.id)} disabled={isLocked} testId="button-reset-audio" />
+        </div>
         <NeonSlider
           label="Gain"
           value={activeLayer.audio.gain}

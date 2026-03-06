@@ -175,6 +175,8 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
           const targetX = (layer.target.x / 100) * cw;
           const targetY = (layer.target.y / 100) * ch;
           const scale = layer.target.scale / 100;
+          const skewX = layer.target.skewX ?? 0;
+          const skewY = layer.target.skewY ?? 0;
 
           const aspectRatio = sw / (sh || 1);
           let drawW = cw * scale;
@@ -184,22 +186,34 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             const diameter = Math.min(drawW, drawH);
             drawW = diameter;
             drawH = diameter;
+          }
+
+          const centerX = targetX + drawW / 2;
+          const centerY = targetY + drawH / 2;
+          const hasTransform = layer.target.rotation !== 0 || skewX !== 0 || skewY !== 0;
+
+          if (hasTransform) {
+            ctx.translate(centerX, centerY);
+            if (layer.target.rotation !== 0) {
+              ctx.rotate((layer.target.rotation * Math.PI) / 180);
+            }
+            if (skewX !== 0 || skewY !== 0) {
+              const skxRad = (skewX * Math.PI) / 180;
+              const skyRad = (skewY * Math.PI) / 180;
+              ctx.transform(1, Math.tan(skyRad), Math.tan(skxRad), 1, 0, 0);
+            }
+            ctx.translate(-centerX, -centerY);
+          }
+
+          if (layer.shape === 'circle') {
             ctx.beginPath();
-            ctx.arc(targetX + diameter / 2, targetY + diameter / 2, diameter / 2, 0, Math.PI * 2);
+            ctx.arc(targetX + drawW / 2, targetY + drawH / 2, drawW / 2, 0, Math.PI * 2);
             ctx.clip();
           } else if (layer.shape === 'rounded') {
             ctx.beginPath();
             const r = Math.min(drawW, drawH) * 0.08;
             ctx.roundRect(targetX, targetY, drawW, drawH, r);
             ctx.clip();
-          }
-
-          if (layer.target.rotation !== 0) {
-            const cx = targetX + drawW / 2;
-            const cy = targetY + drawH / 2;
-            ctx.translate(cx, cy);
-            ctx.rotate((layer.target.rotation * Math.PI) / 180);
-            ctx.translate(-cx, -cy);
           }
 
           ctx.drawImage(video, sx, sy, sw, sh, targetX, targetY, drawW, drawH);

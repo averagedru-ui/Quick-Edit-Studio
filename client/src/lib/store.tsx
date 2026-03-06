@@ -12,6 +12,8 @@ export interface TargetTransform {
   y: number;
   scale: number;
   rotation: number;
+  skewX: number;
+  skewY: number;
 }
 
 export interface AudioSettings {
@@ -53,7 +55,7 @@ const defaultLayers: Layer[] = [
     visible: true,
     locked: false,
     source: { x: 0, y: 0, w: 100, h: 100 },
-    target: { x: 0, y: 0, scale: 120, rotation: 0 },
+    target: { x: 0, y: 0, scale: 120, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rect',
     opacity: 50,
@@ -65,7 +67,7 @@ const defaultLayers: Layer[] = [
     visible: true,
     locked: false,
     source: { x: 15, y: 0, w: 70, h: 100 },
-    target: { x: 0, y: 25, scale: 100, rotation: 0 },
+    target: { x: 0, y: 25, scale: 100, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 80, muted: false, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rect',
     opacity: 100,
@@ -77,7 +79,7 @@ const defaultLayers: Layer[] = [
     visible: true,
     locked: false,
     source: { x: 0, y: 70, w: 20, h: 30 },
-    target: { x: 5, y: 3, scale: 28, rotation: 0 },
+    target: { x: 5, y: 3, scale: 28, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 100, muted: false, solo: false, pan: 0, eqLow: 2, eqMid: 0, eqHigh: 1 },
     shape: 'circle',
     opacity: 100,
@@ -89,7 +91,7 @@ const defaultLayers: Layer[] = [
     visible: false,
     locked: false,
     source: { x: 0, y: 85, w: 20, h: 15 },
-    target: { x: 5, y: 88, scale: 35, rotation: 0 },
+    target: { x: 5, y: 88, scale: 35, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rounded',
     opacity: 100,
@@ -101,7 +103,7 @@ const defaultLayers: Layer[] = [
     visible: false,
     locked: false,
     source: { x: 80, y: 85, w: 20, h: 15 },
-    target: { x: 62, y: 88, scale: 35, rotation: 0 },
+    target: { x: 62, y: 88, scale: 35, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rounded',
     opacity: 100,
@@ -131,7 +133,10 @@ interface StoreContextType {
   updateLayerSource: (id: string, source: Partial<SourceCrop>) => void;
   updateLayerTarget: (id: string, target: Partial<TargetTransform>) => void;
   updateLayerAudio: (id: string, audio: Partial<AudioSettings>) => void;
-  resetLayer: (id: string) => void;
+  resetLayerSource: (id: string) => void;
+  resetLayerTarget: (id: string) => void;
+  resetLayerAppearance: (id: string) => void;
+  resetLayerAudio: (id: string) => void;
   setActiveLayerId: (id: string) => void;
   addSnippet: (snippet: Omit<Snippet, 'id'>) => void;
   removeSnippet: (id: string) => void;
@@ -196,12 +201,39 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const resetLayer = useCallback((id: string) => {
+  const resetLayerSource = useCallback((id: string) => {
     setLayers(prev => prev.map(l => {
-      if (l.id !== id) return l;
+      if (l.id !== id || l.locked) return l;
       const original = defaultLayers.find(d => d.id === id);
       if (!original) return l;
-      return { ...original, visible: l.visible, locked: l.locked };
+      return { ...l, source: { ...original.source } };
+    }));
+  }, []);
+
+  const resetLayerTarget = useCallback((id: string) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id || l.locked) return l;
+      const original = defaultLayers.find(d => d.id === id);
+      if (!original) return l;
+      return { ...l, target: { ...original.target } };
+    }));
+  }, []);
+
+  const resetLayerAppearance = useCallback((id: string) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id || l.locked) return l;
+      const original = defaultLayers.find(d => d.id === id);
+      if (!original) return l;
+      return { ...l, opacity: original.opacity, shape: original.shape };
+    }));
+  }, []);
+
+  const resetLayerAudio = useCallback((id: string) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id || l.locked) return l;
+      const original = defaultLayers.find(d => d.id === id);
+      if (!original) return l;
+      return { ...l, audio: { ...original.audio } };
     }));
   }, []);
 
@@ -226,7 +258,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       videoFile, videoUrl, videoDuration, currentTime, isPlaying,
       layers, snippets, activeLayerId, showExport, previewMode, videoRef,
       setVideoFile, setVideoDuration, setCurrentTime, setIsPlaying,
-      updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio, resetLayer,
+      updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio,
+      resetLayerSource, resetLayerTarget, resetLayerAppearance, resetLayerAudio,
       setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, seekTo,
     }}>
       {children}
