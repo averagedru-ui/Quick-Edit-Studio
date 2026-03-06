@@ -51,7 +51,7 @@ function NeonSlider({
 }
 
 export function TransformPanel() {
-  const { layers, activeLayerId, updateLayerSource, updateLayerTarget, updateLayer } = useStore();
+  const { layers, activeLayerId, updateLayerSource, updateLayerTarget, updateLayer, resetLayer } = useStore();
   const activeLayer = layers.find(l => l.id === activeLayerId);
 
   if (!activeLayer) return null;
@@ -81,6 +81,19 @@ export function TransformPanel() {
               LOCKED
             </span>
           )}
+          <button
+            onClick={() => resetLayer(activeLayer.id)}
+            disabled={isLocked}
+            className="text-[8px] font-mono uppercase px-1.5 py-0.5 rounded transition-all"
+            style={{
+              color: isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(255,150,150,0.8)',
+              backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : 'rgba(255,100,100,0.08)',
+              border: `1px solid ${isLocked ? 'rgba(255,255,255,0.04)' : 'rgba(255,100,100,0.15)'}`,
+            }}
+            data-testid="button-reset-layer"
+          >
+            Reset
+          </button>
         </div>
       </div>
 

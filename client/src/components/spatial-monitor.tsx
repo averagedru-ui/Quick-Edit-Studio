@@ -111,6 +111,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
     if (video.readyState >= 2) {
       const vw = video.videoWidth || 1920;
       const vh = video.videoHeight || 1080;
+      const isHorz = !isVertical;
 
       const visibleLayers = layers.filter(l => l.visible);
 
@@ -118,20 +119,58 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
 
-        const sx = (layer.source.x / 100) * vw;
-        const sy = (layer.source.y / 100) * vh;
-        const sw = (layer.source.w / 100) * vw;
-        const sh = (layer.source.h / 100) * vh;
+        let sx: number, sy: number, sw: number, sh: number;
+
+        if (isHorz && layer.type === 'background') {
+          sx = 0; sy = 0; sw = vw; sh = vh;
+        } else {
+          sx = (layer.source.x / 100) * vw;
+          sy = (layer.source.y / 100) * vh;
+          sw = (layer.source.w / 100) * vw;
+          sh = (layer.source.h / 100) * vh;
+        }
 
         if (layer.type === 'background') {
-          ctx.filter = 'blur(12px) brightness(0.35)';
-          const scale = layer.target.scale / 100;
-          const drawW = cw * scale;
-          const drawH = ch * scale;
+          if (isHorz) {
+            const videoAR = vw / vh;
+            const canvasAR = cw / ch;
+            let drawW: number, drawH: number;
+            if (videoAR > canvasAR) {
+              drawH = ch;
+              drawW = ch * videoAR;
+            } else {
+              drawW = cw;
+              drawH = cw / videoAR;
+            }
+            const offsetX = (cw - drawW) / 2;
+            const offsetY = (ch - drawH) / 2;
+            ctx.filter = 'blur(8px) brightness(0.35)';
+            ctx.drawImage(video, 0, 0, vw, vh, offsetX, offsetY, drawW, drawH);
+            ctx.filter = 'none';
+          } else {
+            ctx.filter = 'blur(12px) brightness(0.35)';
+            const scale = layer.target.scale / 100;
+            const drawW = cw * scale;
+            const drawH = ch * scale;
+            const offsetX = (cw - drawW) / 2;
+            const offsetY = (ch - drawH) / 2;
+            ctx.drawImage(video, sx, sy, sw, sh, offsetX, offsetY, drawW, drawH);
+            ctx.filter = 'none';
+          }
+        } else if (isHorz && layer.type === 'gameplay') {
+          const videoAR = vw / vh;
+          const canvasAR = cw / ch;
+          let drawW: number, drawH: number;
+          if (videoAR > canvasAR) {
+            drawW = cw;
+            drawH = cw / videoAR;
+          } else {
+            drawH = ch;
+            drawW = ch * videoAR;
+          }
           const offsetX = (cw - drawW) / 2;
           const offsetY = (ch - drawH) / 2;
-          ctx.drawImage(video, sx, sy, sw, sh, offsetX, offsetY, drawW, drawH);
-          ctx.filter = 'none';
+          ctx.drawImage(video, 0, 0, vw, vh, offsetX, offsetY, drawW, drawH);
         } else {
           const targetX = (layer.target.x / 100) * cw;
           const targetY = (layer.target.y / 100) * ch;
@@ -179,7 +218,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
     }
 
     rafRef.current = requestAnimationFrame(renderFrame);
-  }, [layers, videoRef, setCurrentTime]);
+  }, [layers, videoRef, setCurrentTime, isVertical]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(renderFrame);

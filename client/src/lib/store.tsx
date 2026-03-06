@@ -131,6 +131,7 @@ interface StoreContextType {
   updateLayerSource: (id: string, source: Partial<SourceCrop>) => void;
   updateLayerTarget: (id: string, target: Partial<TargetTransform>) => void;
   updateLayerAudio: (id: string, audio: Partial<AudioSettings>) => void;
+  resetLayer: (id: string) => void;
   setActiveLayerId: (id: string) => void;
   addSnippet: (snippet: Omit<Snippet, 'id'>) => void;
   removeSnippet: (id: string) => void;
@@ -195,6 +196,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const resetLayer = useCallback((id: string) => {
+    setLayers(prev => prev.map(l => {
+      if (l.id !== id) return l;
+      const original = defaultLayers.find(d => d.id === id);
+      if (!original) return l;
+      return { ...original, visible: l.visible, locked: l.locked };
+    }));
+  }, []);
+
   const addSnippet = useCallback((snippet: Omit<Snippet, 'id'>) => {
     const id = `snippet-${Date.now()}`;
     setSnippets(prev => [...prev, { ...snippet, id }]);
@@ -216,7 +226,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       videoFile, videoUrl, videoDuration, currentTime, isPlaying,
       layers, snippets, activeLayerId, showExport, previewMode, videoRef,
       setVideoFile, setVideoDuration, setCurrentTime, setIsPlaying,
-      updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio,
+      updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio, resetLayer,
       setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, seekTo,
     }}>
       {children}
