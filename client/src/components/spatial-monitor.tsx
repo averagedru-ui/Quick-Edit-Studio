@@ -7,6 +7,11 @@ const VERT_H = 960;
 const HORZ_W = 960;
 const HORZ_H = 540;
 
+// Quality scale factors
+const QUALITY_SCALE = { low: 0.5, med: 0.75, high: 1.0 };
+// Frame skip: low renders every 2nd frame, med and high render every frame
+const QUALITY_FRAME_SKIP = { low: 2, med: 1, high: 1 };
+
 interface SpatialMonitorProps {
   onRequestImport?: () => void;
 }
@@ -14,7 +19,7 @@ interface SpatialMonitorProps {
 export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps) {
   const {
     videoUrl, videoRef, layers, isPlaying, currentTime, videoDuration,
-    activeLayerId, previewMode, setPreviewMode,
+    activeLayerId, previewMode, setPreviewMode, renderQuality, setRenderQuality,
     setIsPlaying, setCurrentTime, setVideoDuration, setVideoFile,
   } = useStore();
 
@@ -24,10 +29,13 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const frameCountRef = useRef<number>(0);
   const isDraggingRef = useRef(false);
   const lastTimeUpdateRef = useRef<number>(0);
   const gainNodeRef = useRef<GainNode | null>(null);
   const panNodeRef = useRef<StereoPannerNode | null>(null);
+  // Reused offscreen canvas for blur — allocated once, never thrown away
+  const bgCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
     if (!videoRef.current || !videoUrl) return;
@@ -98,8 +106,23 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
       return;
     }
 
-    const cw = canvas.width;
-    const ch = canvas.height;
+    // Frame skipping for low quality
+    frameCountRef.current++;
+    const skipCount = QUALITY_FRAME_SKIP[renderQuality];
+    if (frameCountRef.current % skipCount !== 0) {
+      rafRef.current = requestAnimationFrame(renderFrame);
+      return;
+    }
+
+    // Quality-based canvas resolution
+    const scale = QUALITY_SCALE[renderQuality];
+    const cw = Math.round(CANVAS_W * scale);
+    const ch = Math.round(CANVAS_H * scale);
+
+    if (canvas.width !== cw || canvas.height !== ch) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -124,13 +147,49 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         if (isHorz && layer.type === 'background') {
           sx = 0; sy = 0; sw = vw; sh = vh;
         } else {
-          sx = (layer.source.x / 100) * vw;
-          sy = (layer.source.y / 100) * vh;
-          sw = (layer.source.w / 100) * vw;
-          sh = (layer.source.h / 100) * vh;
+          const zoom = (layer.source.zoom ?? 100) / 100;
+          const baseW = (layer.source.w / 100) * vw;
+          const baseH = (layer.source.h / 100) * vh;
+          sw = baseW / zoom;
+          sh = baseH / zoom;
+          const baseSx = (layer.source.x / 100) * vw;
+          const baseSy = (layer.source.y / 100) * vh;
+          sx = baseSx + (baseW - sw) / 2;
+          sy = baseSy + (baseH - sh) / 2;
         }
 
         if (layer.type === 'background') {
+          const blurPx = layer.blur ?? 12;
+          const brightness = 0.35;
+
+          // Reuse a single offscreen canvas — resize only when needed
+          if (!bgCanvasRef.current) {
+            bgCanvasRef.current = document.createElement('canvas');
+          }
+          const off = bgCanvasRef.current;
+
+          const drawBlurred = (
+            srcX: number, srcY: number, srcW: number, srcH: number,
+            dstX: number, dstY: number, dstW: number, dstH: number
+          ) => {
+            const pad = Math.ceil(blurPx * 2);
+            const offW = Math.round(dstW) + pad * 2;
+            const offH = Math.round(dstH) + pad * 2;
+            if (off.width !== offW || off.height !== offH) {
+              off.width = offW;
+              off.height = offH;
+            }
+            const offCtx = off.getContext('2d');
+            if (!offCtx) return;
+            offCtx.clearRect(0, 0, offW, offH);
+            offCtx.filter = `blur(${blurPx}px)`;
+            offCtx.drawImage(video, srcX, srcY, srcW, srcH, pad, pad, Math.round(dstW), Math.round(dstH));
+            offCtx.filter = 'none';
+            offCtx.fillStyle = `rgba(0,0,0,${1 - brightness})`;
+            offCtx.fillRect(0, 0, offW, offH);
+            ctx.drawImage(off, Math.round(dstX) - pad, Math.round(dstY) - pad);
+          };
+
           if (isHorz) {
             const videoAR = vw / vh;
             const canvasAR = cw / ch;
@@ -144,19 +203,27 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             }
             const offsetX = (cw - drawW) / 2;
             const offsetY = (ch - drawH) / 2;
-            ctx.filter = 'blur(8px) brightness(0.35)';
-            ctx.drawImage(video, 0, 0, vw, vh, offsetX, offsetY, drawW, drawH);
-            ctx.filter = 'none';
+            drawBlurred(0, 0, vw, vh, offsetX, offsetY, drawW, drawH);
           } else {
-            ctx.filter = 'blur(12px) brightness(0.35)';
-            const scale = layer.target.scale / 100;
-            const drawW = cw * scale;
-            const drawH = ch * scale;
+            // Vertical: cover canvas preserving video AR, then apply scale
+            const bgScale = layer.target.scale / 100;
+            const videoAR = vw / vh;
+            const canvasAR = cw / ch;
+            let baseW: number, baseH: number;
+            if (videoAR > canvasAR) {
+              baseH = ch;
+              baseW = ch * videoAR;
+            } else {
+              baseW = cw;
+              baseH = cw / videoAR;
+            }
+            const drawW = baseW * bgScale;
+            const drawH = baseH * bgScale;
             const offsetX = (cw - drawW) / 2;
             const offsetY = (ch - drawH) / 2;
-            ctx.drawImage(video, sx, sy, sw, sh, offsetX, offsetY, drawW, drawH);
-            ctx.filter = 'none';
+            drawBlurred(sx, sy, sw, sh, offsetX, offsetY, drawW, drawH);
           }
+
         } else if (isHorz && layer.type === 'gameplay') {
           const videoAR = vw / vh;
           const canvasAR = cw / ch;
@@ -174,19 +241,25 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
         } else {
           const targetX = (layer.target.x / 100) * cw;
           const targetY = (layer.target.y / 100) * ch;
-          const scale = layer.target.scale / 100;
+          const layerScale = layer.target.scale / 100;
           const skewX = layer.target.skewX ?? 0;
           const skewY = layer.target.skewY ?? 0;
 
-          const aspectRatio = sw / (sh || 1);
-          let drawW = cw * scale;
+          // For circle: force square source region centered on crop
+          let drawSx = sx, drawSy = sy, drawSw = sw, drawSh = sh;
+          if (layer.shape === 'circle') {
+            const size = Math.min(sw, sh);
+            drawSx = sx + (sw - size) / 2;
+            drawSy = sy + (sh - size) / 2;
+            drawSw = size;
+            drawSh = size;
+          }
+
+          const aspectRatio = layer.shape === 'circle' ? 1 : drawSw / (drawSh || 1);
+          let drawW = cw * layerScale;
           let drawH = drawW / aspectRatio;
 
-          if (layer.shape === 'circle') {
-            const diameter = Math.min(drawW, drawH);
-            drawW = diameter;
-            drawH = diameter;
-          }
+          if (layer.shape === 'circle') drawH = drawW;
 
           const centerX = targetX + drawW / 2;
           const centerY = targetY + drawH / 2;
@@ -216,7 +289,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             ctx.clip();
           }
 
-          ctx.drawImage(video, sx, sy, sw, sh, targetX, targetY, drawW, drawH);
+          ctx.drawImage(video, drawSx, drawSy, drawSw, drawSh, targetX, targetY, drawW, drawH);
         }
 
         ctx.restore();
@@ -232,7 +305,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
     }
 
     rafRef.current = requestAnimationFrame(renderFrame);
-  }, [layers, videoRef, setCurrentTime, isVertical]);
+  }, [layers, videoRef, setCurrentTime, isVertical, renderQuality, CANVAS_W, CANVAS_H]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(renderFrame);
@@ -277,6 +350,13 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   const borderRadius = isVertical ? 'rounded-2xl md:rounded-[28px]' : 'rounded-xl md:rounded-2xl';
   const innerRadius = isVertical ? 'rounded-[14px] md:rounded-[26px]' : 'rounded-[10px] md:rounded-[14px]';
 
+  const qualityLevels = ['low', 'med', 'high'] as const;
+  const qualityColors = {
+    low: 'rgba(255,180,50,0.8)',
+    med: 'rgba(100,200,255,0.8)',
+    high: 'rgba(190,242,100,0.8)',
+  };
+
   return (
     <div
       className="flex flex-col items-center h-full justify-center py-2 px-3 md:py-3 gap-2"
@@ -312,6 +392,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
               width={CANVAS_W}
               height={CANVAS_H}
               className="w-full h-full"
+              style={{ imageRendering: renderQuality === 'low' ? 'pixelated' : 'auto' }}
               data-testid="canvas-preview"
             />
           </div>
@@ -323,7 +404,8 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             </div>
           )}
 
-          <div className="absolute top-2 left-2">
+          {/* Top-left: preview mode toggle */}
+          <div className="absolute top-2 left-2 flex items-center gap-1">
             <button
               onClick={() => setPreviewMode(isVertical ? 'horizontal' : 'vertical')}
               className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[8px] font-mono uppercase tracking-wider transition-colors"
@@ -338,6 +420,27 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
               {isVertical ? <Monitor className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
               {isVertical ? '16:9' : '9:16'}
             </button>
+
+            {/* Quality toggle */}
+            <div
+              className="flex items-center rounded-md overflow-hidden"
+              style={{ border: '1px solid rgba(255,255,255,0.1)', backgroundColor: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(8px)' }}
+            >
+              {qualityLevels.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => setRenderQuality(q)}
+                  className="px-1.5 py-1 text-[8px] font-mono uppercase tracking-wider transition-colors"
+                  style={{
+                    color: renderQuality === q ? qualityColors[q] : 'rgba(255,255,255,0.3)',
+                    backgroundColor: renderQuality === q ? 'rgba(255,255,255,0.08)' : 'transparent',
+                  }}
+                  data-testid={`button-quality-${q}`}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
 
           {!videoUrl && (
