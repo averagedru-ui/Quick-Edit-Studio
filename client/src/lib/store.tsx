@@ -5,6 +5,7 @@ export interface SourceCrop {
   y: number;
   w: number;
   h: number;
+  zoom: number;
 }
 
 export interface TargetTransform {
@@ -37,6 +38,7 @@ export interface Layer {
   audio: AudioSettings;
   shape: 'rect' | 'circle' | 'rounded';
   opacity: number;
+  blur: number;
 }
 
 export interface Snippet {
@@ -54,11 +56,12 @@ const defaultLayers: Layer[] = [
     type: 'background',
     visible: true,
     locked: false,
-    source: { x: 0, y: 0, w: 100, h: 100 },
+    source: { x: 0, y: 0, w: 100, h: 100, zoom: 100 },
     target: { x: 0, y: 0, scale: 120, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rect',
     opacity: 50,
+    blur: 12,
   },
   {
     id: 'gameplay',
@@ -66,11 +69,12 @@ const defaultLayers: Layer[] = [
     type: 'gameplay',
     visible: true,
     locked: false,
-    source: { x: 15, y: 0, w: 70, h: 100 },
+    source: { x: 15, y: 0, w: 70, h: 100, zoom: 100 },
     target: { x: 0, y: 25, scale: 100, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 80, muted: false, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rect',
     opacity: 100,
+    blur: 0,
   },
   {
     id: 'camera',
@@ -78,11 +82,12 @@ const defaultLayers: Layer[] = [
     type: 'camera',
     visible: true,
     locked: false,
-    source: { x: 0, y: 70, w: 20, h: 30 },
+    source: { x: 0, y: 70, w: 20, h: 30, zoom: 100 },
     target: { x: 5, y: 3, scale: 28, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 100, muted: false, solo: false, pan: 0, eqLow: 2, eqMid: 0, eqHigh: 1 },
     shape: 'circle',
     opacity: 100,
+    blur: 0,
   },
   {
     id: 'hud1',
@@ -90,11 +95,12 @@ const defaultLayers: Layer[] = [
     type: 'hud1',
     visible: false,
     locked: false,
-    source: { x: 0, y: 85, w: 20, h: 15 },
+    source: { x: 0, y: 85, w: 20, h: 15, zoom: 100 },
     target: { x: 5, y: 88, scale: 35, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rounded',
     opacity: 100,
+    blur: 0,
   },
   {
     id: 'hud2',
@@ -102,15 +108,17 @@ const defaultLayers: Layer[] = [
     type: 'hud2',
     visible: false,
     locked: false,
-    source: { x: 80, y: 85, w: 20, h: 15 },
+    source: { x: 80, y: 85, w: 20, h: 15, zoom: 100 },
     target: { x: 62, y: 88, scale: 35, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rounded',
     opacity: 100,
+    blur: 0,
   },
 ];
 
 export type PreviewMode = 'vertical' | 'horizontal';
+export type RenderQuality = 'low' | 'med' | 'high';
 
 interface StoreContextType {
   videoFile: File | null;
@@ -123,6 +131,7 @@ interface StoreContextType {
   activeLayerId: string;
   showExport: boolean;
   previewMode: PreviewMode;
+  renderQuality: RenderQuality;
   videoRef: RefObject<HTMLVideoElement | null>;
 
   setVideoFile: (file: File) => void;
@@ -142,6 +151,7 @@ interface StoreContextType {
   removeSnippet: (id: string) => void;
   setShowExport: (show: boolean) => void;
   setPreviewMode: (mode: PreviewMode) => void;
+  setRenderQuality: (q: RenderQuality) => void;
   seekTo: (time: number) => void;
 }
 
@@ -158,6 +168,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [activeLayerId, setActiveLayerId] = useState('gameplay');
   const [showExport, setShowExport] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('vertical');
+  const [renderQuality, setRenderQuality] = useState<RenderQuality>('med');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const setVideoFile = useCallback((file: File) => {
@@ -224,7 +235,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (l.id !== id || l.locked) return l;
       const original = defaultLayers.find(d => d.id === id);
       if (!original) return l;
-      return { ...l, opacity: original.opacity, shape: original.shape };
+      return { ...l, opacity: original.opacity, shape: original.shape, blur: original.blur };
     }));
   }, []);
 
@@ -256,11 +267,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <StoreContext.Provider value={{
       videoFile, videoUrl, videoDuration, currentTime, isPlaying,
-      layers, snippets, activeLayerId, showExport, previewMode, videoRef,
+      layers, snippets, activeLayerId, showExport, previewMode, renderQuality, videoRef,
       setVideoFile, setVideoDuration, setCurrentTime, setIsPlaying,
       updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio,
       resetLayerSource, resetLayerTarget, resetLayerAppearance, resetLayerAudio,
-      setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, seekTo,
+      setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, setRenderQuality, seekTo,
     }}>
       {children}
     </StoreContext.Provider>
