@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
-import { X, RotateCcw } from 'lucide-react';
+import { X, RotateCcw, Crosshair } from 'lucide-react';
 
 function NeonSlider({
   value, min, max, step = 1, onChange, label, displayValue, disabled = false,
@@ -15,7 +15,26 @@ function NeonSlider({
   displayValue?: string;
   disabled?: boolean;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState('');
+
   const pct = ((value - min) / (max - min)) * 100;
+  const decimals = step < 1 ? 1 : 0;
+  const formatted = displayValue ?? value.toFixed(decimals);
+
+  const commitEdit = () => {
+    const parsed = parseFloat(inputVal);
+    if (!isNaN(parsed)) {
+      onChange(Math.min(max, Math.max(min, parsed)));
+    }
+    setEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') commitEdit();
+    if (e.key === 'Escape') setEditing(false);
+  };
+
   return (
     <div className={`space-y-1.5 ${disabled ? 'opacity-35 pointer-events-none' : ''}`}>
       <div className="flex items-center justify-between gap-1">
@@ -25,12 +44,27 @@ function NeonSlider({
         >
           {label}
         </span>
-        <span
-          className="text-[10px] font-mono tabular-nums"
-          style={{ color: 'rgba(190,242,100,0.6)' }}
-        >
-          {displayValue ?? value.toFixed(step < 1 ? 1 : 0)}
-        </span>
+        {editing ? (
+          <input
+            type="number"
+            value={inputVal}
+            autoFocus
+            onChange={(e) => setInputVal(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={handleKeyDown}
+            className="text-[10px] font-mono tabular-nums text-right w-14 bg-transparent outline-none border-b"
+            style={{ color: '#bef264', borderColor: 'rgba(190,242,100,0.4)' }}
+          />
+        ) : (
+          <span
+            className="text-[10px] font-mono tabular-nums cursor-text"
+            title="Click to type a value"
+            style={{ color: 'rgba(190,242,100,0.6)' }}
+            onClick={() => { setInputVal(value.toString()); setEditing(true); }}
+          >
+            {formatted}
+          </span>
+        )}
       </div>
       <input
         type="range"
@@ -78,6 +112,7 @@ export function TransformPanel() {
 
   if (!activeLayer) return null;
   const isLocked = activeLayer.locked;
+  const isCircle = activeLayer.shape === 'circle';
 
   return (
     <div className="space-y-4" data-testid="transform-panel">
@@ -106,6 +141,7 @@ export function TransformPanel() {
         </div>
       </div>
 
+      {/* Source Crop */}
       <div
         className="rounded-md p-3 space-y-2.5"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
@@ -117,20 +153,83 @@ export function TransformPanel() {
           >
             Source Crop
           </h4>
-          <SectionResetButton onClick={() => resetLayerSource(activeLayer.id)} disabled={isLocked} testId="button-reset-source" />
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => {
+                if (isLocked) return;
+                const layerWidth = activeLayer.target.scale;
+                updateLayerTarget(activeLayer.id, { x: 50 - layerWidth / 2 });
+              }}
+              disabled={isLocked}
+              className="flex items-center gap-0.5 text-[8px] font-mono uppercase px-1.5 py-0.5 rounded transition-all"
+              style={{
+                color: isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(100,200,255,0.8)',
+                backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : 'rgba(100,200,255,0.08)',
+                border: `1px solid ${isLocked ? 'rgba(255,255,255,0.04)' : 'rgba(100,200,255,0.15)'}`,
+              }}
+              title="Center horizontally on screen"
+            >
+              <Crosshair className="w-2.5 h-2.5" />
+              Center
+            </button>
+            <SectionResetButton onClick={() => resetLayerSource(activeLayer.id)} disabled={isLocked} testId="button-reset-source" />
+          </div>
         </div>
+
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NeonSlider label="Source X" value={activeLayer.source.x} min={0} max={100} disabled={isLocked}
-            onChange={(v) => updateLayerSource(activeLayer.id, { x: v })} />
-          <NeonSlider label="Source Y" value={activeLayer.source.y} min={0} max={100} disabled={isLocked}
-            onChange={(v) => updateLayerSource(activeLayer.id, { y: v })} />
-          <NeonSlider label="Width" value={activeLayer.source.w} min={1} max={100} disabled={isLocked}
-            onChange={(v) => updateLayerSource(activeLayer.id, { w: v })} />
-          <NeonSlider label="Height" value={activeLayer.source.h} min={1} max={100} disabled={isLocked}
-            onChange={(v) => updateLayerSource(activeLayer.id, { h: v })} />
+          {isCircle ? (
+            <>
+              <div className="col-span-2">
+                <NeonSlider
+                  label="Size"
+                  value={activeLayer.source.w}
+                  min={1} max={100} step={0.5}
+                  disabled={isLocked}
+                  displayValue={`${activeLayer.source.w.toFixed(1)}%`}
+                  onChange={(v) => updateLayerSource(activeLayer.id, { w: v, h: v })}
+                />
+              </div>
+              <NeonSlider label="Source X" value={activeLayer.source.x} min={0} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { x: v })} />
+              <NeonSlider label="Source Y" value={activeLayer.source.y} min={0} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { y: v })} />
+              <div className="col-span-2">
+                <NeonSlider
+                  label="Zoom"
+                  value={activeLayer.source.zoom ?? 100}
+                  min={50} max={300} step={0.5}
+                  disabled={isLocked}
+                  displayValue={`${(activeLayer.source.zoom ?? 100).toFixed(1)}%`}
+                  onChange={(v) => updateLayerSource(activeLayer.id, { zoom: v })}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <NeonSlider label="Source X" value={activeLayer.source.x} min={0} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { x: v })} />
+              <NeonSlider label="Source Y" value={activeLayer.source.y} min={0} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { y: v })} />
+              <NeonSlider label="Width" value={activeLayer.source.w} min={1} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { w: v })} />
+              <NeonSlider label="Height" value={activeLayer.source.h} min={1} max={100} disabled={isLocked}
+                onChange={(v) => updateLayerSource(activeLayer.id, { h: v })} />
+              <div className="col-span-2">
+                <NeonSlider
+                  label="Zoom"
+                  value={activeLayer.source.zoom ?? 100}
+                  min={50} max={300} step={0.5}
+                  disabled={isLocked}
+                  displayValue={`${(activeLayer.source.zoom ?? 100).toFixed(1)}%`}
+                  onChange={(v) => updateLayerSource(activeLayer.id, { zoom: v })}
+                />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
+      {/* Target Transform */}
       <div
         className="rounded-md p-3 space-y-2.5"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
@@ -164,6 +263,7 @@ export function TransformPanel() {
         </div>
       </div>
 
+      {/* Appearance */}
       <div
         className="rounded-md p-3"
         style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
@@ -186,6 +286,21 @@ export function TransformPanel() {
           displayValue={`${activeLayer.opacity}%`}
           onChange={(v) => updateLayer(activeLayer.id, { opacity: v })}
         />
+
+        {activeLayer.type === 'background' && (
+          <div className="mt-2">
+            <NeonSlider
+              label="Blur"
+              value={activeLayer.blur ?? 12}
+              min={0}
+              max={40}
+              step={0.5}
+              disabled={isLocked}
+              displayValue={`${(activeLayer.blur ?? 12).toFixed(1)}px`}
+              onChange={(v) => updateLayer(activeLayer.id, { blur: v })}
+            />
+          </div>
+        )}
 
         <div className="mt-3">
           <span
