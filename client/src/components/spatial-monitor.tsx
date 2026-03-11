@@ -162,41 +162,57 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
           const blurPx = layer.blur ?? 12;
           const brightness = 0.35;
 
-          // Cross-platform blur: scale down then scale back up.
-          // ctx.filter is unreliable on iOS Safari and some Android browsers.
-          // Downscaling by a factor derived from blur amount produces a natural
-          // soft blur when upscaled back, without any CSS filter support needed.
           if (!bgCanvasRef.current) {
             bgCanvasRef.current = document.createElement('canvas');
           }
-          const off = bgCanvasRef.current;
+          // Second offscreen canvas for multi-pass
+          if (!(bgCanvasRef.current as any)._pass2) {
+            (bgCanvasRef.current as any)._pass2 = document.createElement('canvas');
+          }
+          const off1 = bgCanvasRef.current;
+          const off2 = (bgCanvasRef.current as any)._pass2 as HTMLCanvasElement;
 
           const drawBlurred = (
             srcX: number, srcY: number, srcW: number, srcH: number,
             dstX: number, dstY: number, dstW: number, dstH: number
           ) => {
-            // How aggressively to downscale — more blur = smaller intermediate canvas
-            const blurFactor = Math.max(0.05, 1 - (blurPx / 50));
-            const smallW = Math.max(2, Math.round(dstW * blurFactor));
-            const smallH = Math.max(2, Math.round(dstH * blurFactor));
+            // Multi-pass downscale blur — works on all browsers including iOS Safari.
+            // Pass 1: draw video at ~25% size
+            // Pass 2: draw pass1 at ~50% of original (upscale slightly)
+            // Pass 3: draw pass2 at full destination size
+            // Each upscale with imageSmoothingQuality:'high' adds a smoothing pass.
+            // More blur = smaller pass1, more softness on final upscale.
+            const scaleFactor = Math.max(0.04, 1 - (blurPx / 44));
+            const p1W = Math.max(2, Math.round(dstW * scaleFactor));
+            const p1H = Math.max(2, Math.round(dstH * scaleFactor));
+            const p2W = Math.max(4, Math.round(dstW * scaleFactor * 2));
+            const p2H = Math.max(4, Math.round(dstH * scaleFactor * 2));
 
-            if (off.width !== smallW || off.height !== smallH) {
-              off.width = smallW;
-              off.height = smallH;
-            }
-            const offCtx = off.getContext('2d');
-            if (!offCtx) return;
+            if (off1.width !== p1W || off1.height !== p1H) { off1.width = p1W; off1.height = p1H; }
+            if (off2.width !== p2W || off2.height !== p2H) { off2.width = p2W; off2.height = p2H; }
 
-            // Step 1: draw video frame at small size (creates the blur)
-            offCtx.clearRect(0, 0, smallW, smallH);
-            offCtx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, smallW, smallH);
+            const c1 = off1.getContext('2d');
+            const c2 = off2.getContext('2d');
+            if (!c1 || !c2) return;
 
-            // Step 2: draw small canvas back up to full size with smoothing
+            // Pass 1: video → tiny
+            c1.imageSmoothingEnabled = true;
+            c1.imageSmoothingQuality = 'high';
+            c1.clearRect(0, 0, p1W, p1H);
+            c1.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, p1W, p1H);
+
+            // Pass 2: tiny → medium
+            c2.imageSmoothingEnabled = true;
+            c2.imageSmoothingQuality = 'high';
+            c2.clearRect(0, 0, p2W, p2H);
+            c2.drawImage(off1, 0, 0, p1W, p1H, 0, 0, p2W, p2H);
+
+            // Pass 3: medium → full destination
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(off, 0, 0, smallW, smallH, dstX, dstY, dstW, dstH);
+            ctx.drawImage(off2, 0, 0, p2W, p2H, dstX, dstY, dstW, dstH);
 
-            // Step 3: apply brightness darkening overlay
+            // Brightness overlay
             ctx.fillStyle = `rgba(0,0,0,${1 - brightness})`;
             ctx.fillRect(dstX, dstY, dstW, dstH);
           };
