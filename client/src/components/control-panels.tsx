@@ -167,10 +167,34 @@ export function TransformPanel() {
                 backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : 'rgba(100,200,255,0.08)',
                 border: `1px solid ${isLocked ? 'rgba(255,255,255,0.04)' : 'rgba(100,200,255,0.15)'}`,
               }}
-              title="Center horizontally on screen"
+              title="Center horizontally on canvas"
             >
               <Crosshair className="w-2.5 h-2.5" />
-              Center
+              H
+            </button>
+            <button
+              onClick={() => {
+                if (isLocked) return;
+                // Scale is % of canvas width, so derive height from aspect ratio of source
+                const zoom = (activeLayer.source.zoom ?? 100) / 100;
+                const srcW = activeLayer.source.w / zoom;
+                const srcH = activeLayer.source.h / zoom;
+                const aspectRatio = activeLayer.shape === 'circle' ? 1 : (srcW / (srcH || 1));
+                const layerWidthPct = activeLayer.target.scale; // % of canvas width
+                const layerHeightPct = layerWidthPct / aspectRatio; // % of canvas height
+                updateLayerTarget(activeLayer.id, { y: 50 - layerHeightPct / 2 });
+              }}
+              disabled={isLocked}
+              className="flex items-center gap-0.5 text-[8px] font-mono uppercase px-1.5 py-0.5 rounded transition-all"
+              style={{
+                color: isLocked ? 'rgba(255,255,255,0.2)' : 'rgba(100,200,255,0.8)',
+                backgroundColor: isLocked ? 'rgba(255,255,255,0.02)' : 'rgba(100,200,255,0.08)',
+                border: `1px solid ${isLocked ? 'rgba(255,255,255,0.04)' : 'rgba(100,200,255,0.15)'}`,
+              }}
+              title="Center vertically on canvas"
+            >
+              <Crosshair className="w-2.5 h-2.5" />
+              V
             </button>
             <SectionResetButton onClick={() => resetLayerSource(activeLayer.id)} disabled={isLocked} testId="button-reset-source" />
           </div>
