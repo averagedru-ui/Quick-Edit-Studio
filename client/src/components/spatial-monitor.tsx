@@ -162,7 +162,10 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
           const blurPx = layer.blur ?? 12;
           const brightness = 0.35;
 
-          // Reuse a single offscreen canvas — resize only when needed
+          // Cross-platform blur: scale down then scale back up.
+          // ctx.filter is unreliable on iOS Safari and some Android browsers.
+          // Downscaling by a factor derived from blur amount produces a natural
+          // soft blur when upscaled back, without any CSS filter support needed.
           if (!bgCanvasRef.current) {
             bgCanvasRef.current = document.createElement('canvas');
           }
@@ -172,22 +175,30 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             srcX: number, srcY: number, srcW: number, srcH: number,
             dstX: number, dstY: number, dstW: number, dstH: number
           ) => {
-            const pad = Math.ceil(blurPx * 2);
-            const offW = Math.round(dstW) + pad * 2;
-            const offH = Math.round(dstH) + pad * 2;
-            if (off.width !== offW || off.height !== offH) {
-              off.width = offW;
-              off.height = offH;
+            // How aggressively to downscale — more blur = smaller intermediate canvas
+            const blurFactor = Math.max(0.05, 1 - (blurPx / 50));
+            const smallW = Math.max(2, Math.round(dstW * blurFactor));
+            const smallH = Math.max(2, Math.round(dstH * blurFactor));
+
+            if (off.width !== smallW || off.height !== smallH) {
+              off.width = smallW;
+              off.height = smallH;
             }
             const offCtx = off.getContext('2d');
             if (!offCtx) return;
-            offCtx.clearRect(0, 0, offW, offH);
-            offCtx.filter = `blur(${blurPx}px)`;
-            offCtx.drawImage(video, srcX, srcY, srcW, srcH, pad, pad, Math.round(dstW), Math.round(dstH));
-            offCtx.filter = 'none';
-            offCtx.fillStyle = `rgba(0,0,0,${1 - brightness})`;
-            offCtx.fillRect(0, 0, offW, offH);
-            ctx.drawImage(off, Math.round(dstX) - pad, Math.round(dstY) - pad);
+
+            // Step 1: draw video frame at small size (creates the blur)
+            offCtx.clearRect(0, 0, smallW, smallH);
+            offCtx.drawImage(video, srcX, srcY, srcW, srcH, 0, 0, smallW, smallH);
+
+            // Step 2: draw small canvas back up to full size with smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(off, 0, 0, smallW, smallH, dstX, dstY, dstW, dstH);
+
+            // Step 3: apply brightness darkening overlay
+            ctx.fillStyle = `rgba(0,0,0,${1 - brightness})`;
+            ctx.fillRect(dstX, dstY, dstW, dstH);
           };
 
           if (isHorz) {
