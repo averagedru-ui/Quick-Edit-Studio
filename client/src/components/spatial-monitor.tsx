@@ -182,7 +182,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             // Pass 3: draw pass2 at full destination size
             // Each upscale with imageSmoothingQuality:'high' adds a smoothing pass.
             // More blur = smaller pass1, more softness on final upscale.
-            const scaleFactor = Math.max(0.04, 1 - (blurPx / 44));
+            const scaleFactor = Math.max(0.02, 1 - (blurPx / 110));
             const p1W = Math.max(2, Math.round(dstW * scaleFactor));
             const p1H = Math.max(2, Math.round(dstH * scaleFactor));
             const p2W = Math.max(4, Math.round(dstW * scaleFactor * 2));
