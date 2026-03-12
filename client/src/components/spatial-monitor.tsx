@@ -176,17 +176,18 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
             srcX: number, srcY: number, srcW: number, srcH: number,
             dstX: number, dstY: number, dstW: number, dstH: number
           ) => {
-            // Multi-pass downscale blur — works on all browsers including iOS Safari.
-            // Pass 1: draw video at ~25% size
-            // Pass 2: draw pass1 at ~50% of original (upscale slightly)
-            // Pass 3: draw pass2 at full destination size
-            // Each upscale with imageSmoothingQuality:'high' adds a smoothing pass.
-            // More blur = smaller pass1, more softness on final upscale.
-            const scaleFactor = Math.max(0.02, 1 - (blurPx / 110));
-            const p1W = Math.max(2, Math.round(dstW * scaleFactor));
-            const p1H = Math.max(2, Math.round(dstH * scaleFactor));
-            const p2W = Math.max(4, Math.round(dstW * scaleFactor * 2));
-            const p2H = Math.max(4, Math.round(dstH * scaleFactor * 2));
+            // Multi-pass blur. blurPx range 0-100.
+            // p1 = tiny (most softening happens on final upscale from here)
+            // p2 = ~25% of dest (second softening pass)
+            // Pass 3 upscales p2 → full dest size
+            const t = Math.min(blurPx / 100, 1); // 0..1
+            const p1Scale = Math.max(0.015, 0.25 - t * 0.235); // 0.25 → 0.015
+            const p2Scale = Math.max(0.08, 0.5 - t * 0.42);   // 0.5  → 0.08
+
+            const p1W = Math.max(2, Math.round(dstW * p1Scale));
+            const p1H = Math.max(2, Math.round(dstH * p1Scale));
+            const p2W = Math.max(4, Math.round(dstW * p2Scale));
+            const p2H = Math.max(4, Math.round(dstH * p2Scale));
 
             if (off1.width !== p1W || off1.height !== p1H) { off1.width = p1W; off1.height = p1H; }
             if (off2.width !== p2W || off2.height !== p2H) { off2.width = p2W; off2.height = p2H; }
