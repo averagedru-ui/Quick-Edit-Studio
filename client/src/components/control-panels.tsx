@@ -268,11 +268,11 @@ export function TransformPanel() {
           <SectionResetButton onClick={() => resetLayerTarget(activeLayer.id)} disabled={isLocked} testId="button-reset-target" />
         </div>
         <div className="grid grid-cols-2 gap-x-3 gap-y-2">
-          <NeonSlider label="Position X" value={activeLayer.target.x} min={-50} max={100} disabled={isLocked}
+          <NeonSlider label="Position X" value={activeLayer.target.x} min={-100} max={150} disabled={isLocked}
             onChange={(v) => updateLayerTarget(activeLayer.id, { x: v })} />
-          <NeonSlider label="Position Y" value={activeLayer.target.y} min={-50} max={100} disabled={isLocked}
+          <NeonSlider label="Position Y" value={activeLayer.target.y} min={-100} max={150} disabled={isLocked}
             onChange={(v) => updateLayerTarget(activeLayer.id, { y: v })} />
-          <NeonSlider label="Scale" value={activeLayer.target.scale} min={1} max={200} disabled={isLocked}
+          <NeonSlider label="Scale" value={activeLayer.target.scale} min={1} max={300} disabled={isLocked}
             displayValue={`${activeLayer.target.scale}%`}
             onChange={(v) => updateLayerTarget(activeLayer.id, { scale: v })} />
           <NeonSlider label="Rotation" value={activeLayer.target.rotation} min={-180} max={180} disabled={isLocked}
