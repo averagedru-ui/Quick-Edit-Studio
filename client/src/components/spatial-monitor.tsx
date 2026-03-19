@@ -160,7 +160,7 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
 
         if (layer.type === 'background') {
           const blurPx = layer.blur ?? 12;
-          const brightness = 0.35;
+          const brightness = 0.55;
 
           if (!bgCanvasRef.current) {
             bgCanvasRef.current = document.createElement('canvas');

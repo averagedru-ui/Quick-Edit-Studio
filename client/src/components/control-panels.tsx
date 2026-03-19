@@ -317,10 +317,10 @@ export function TransformPanel() {
               label="Blur"
               value={activeLayer.blur ?? 12}
               min={0}
-              max={40}
+              max={100}
               step={0.5}
               disabled={isLocked}
-              displayValue={`${(activeLayer.blur ?? 12).toFixed(1)}px`}
+              displayValue={`${(activeLayer.blur ?? 12).toFixed(1)}%`}
               onChange={(v) => updateLayer(activeLayer.id, { blur: v })}
             />
           </div>

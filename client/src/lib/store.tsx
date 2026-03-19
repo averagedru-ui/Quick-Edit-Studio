@@ -60,7 +60,7 @@ const defaultLayers: Layer[] = [
     target: { x: 0, y: 0, scale: 120, rotation: 0, skewX: 0, skewY: 0 },
     audio: { gain: 0, muted: true, solo: false, pan: 0, eqLow: 0, eqMid: 0, eqHigh: 0 },
     shape: 'rect',
-    opacity: 50,
+    opacity: 80,
     blur: 12,
   },
   {
@@ -80,7 +80,7 @@ const defaultLayers: Layer[] = [
     id: 'camera',
     name: 'Camera',
     type: 'camera',
-    visible: true,
+    visible: false,
     locked: false,
     source: { x: 0, y: 70, w: 20, h: 30, zoom: 100 },
     target: { x: 5, y: 3, scale: 28, rotation: 0, skewX: 0, skewY: 0 },
@@ -130,6 +130,7 @@ interface StoreContextType {
   snippets: Snippet[];
   activeLayerId: string;
   showExport: boolean;
+  showAiClipper: boolean;
   previewMode: PreviewMode;
   renderQuality: RenderQuality;
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -150,6 +151,7 @@ interface StoreContextType {
   addSnippet: (snippet: Omit<Snippet, 'id'>) => void;
   removeSnippet: (id: string) => void;
   setShowExport: (show: boolean) => void;
+  setShowAiClipper: (show: boolean) => void;
   setPreviewMode: (mode: PreviewMode) => void;
   setRenderQuality: (q: RenderQuality) => void;
   seekTo: (time: number) => void;
@@ -167,6 +169,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [activeLayerId, setActiveLayerId] = useState('gameplay');
   const [showExport, setShowExport] = useState(false);
+  const [showAiClipper, setShowAiClipper] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>('vertical');
   const [renderQuality, setRenderQuality] = useState<RenderQuality>('med');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -267,11 +270,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <StoreContext.Provider value={{
       videoFile, videoUrl, videoDuration, currentTime, isPlaying,
-      layers, snippets, activeLayerId, showExport, previewMode, renderQuality, videoRef,
+      layers, snippets, activeLayerId, showExport, showAiClipper, previewMode, renderQuality, videoRef,
       setVideoFile, setVideoDuration, setCurrentTime, setIsPlaying,
       updateLayer, updateLayerSource, updateLayerTarget, updateLayerAudio,
       resetLayerSource, resetLayerTarget, resetLayerAppearance, resetLayerAudio,
-      setActiveLayerId, addSnippet, removeSnippet, setShowExport, setPreviewMode, setRenderQuality, seekTo,
+      setActiveLayerId, addSnippet, removeSnippet, setShowExport, setShowAiClipper, setPreviewMode, setRenderQuality, seekTo,
     }}>
       {children}
     </StoreContext.Provider>

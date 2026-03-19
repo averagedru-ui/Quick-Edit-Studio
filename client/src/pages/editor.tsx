@@ -5,7 +5,8 @@ import SpatialMonitor from '@/components/spatial-monitor';
 import LayerMatrix from '@/components/layer-matrix';
 import { TransformPanel, AudioMixer, SnippetDeck } from '@/components/control-panels';
 import ExportPortal from '@/components/export-portal';
-import { Upload, Download, Layers, Move, Volume2, Scissors, ChevronUp, ChevronDown } from 'lucide-react';
+import AiClipper from '@/components/ai-clipper';
+import { Upload, Download, Sparkles, Layers, Move, Volume2, Scissors, ChevronUp, ChevronDown } from 'lucide-react';
 
 type MobileTab = 'layers' | 'transform' | 'audio' | 'clips';
 
@@ -20,7 +21,7 @@ export default function EditorPage() {
   const [showSplash, setShowSplash] = useState(true);
   const [mobileTab, setMobileTab] = useState<MobileTab>('layers');
   const [panelExpanded, setPanelExpanded] = useState(false);
-  const { setVideoFile, setShowExport, previewMode } = useStore();
+  const { setVideoFile, setShowExport, setShowAiClipper, previewMode } = useStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImport = () => fileInputRef.current?.click();
@@ -84,6 +85,15 @@ export default function EditorPage() {
           >
             <Upload className="w-3 h-3" />
             <span className="hidden sm:inline">Import</span>
+          </button>
+          <button
+            onClick={() => setShowAiClipper(true)}
+            className="flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider transition-colors"
+            style={{ color: 'rgba(190,242,100,0.8)', backgroundColor: 'rgba(190,242,100,0.05)', border: '1px solid rgba(190,242,100,0.1)' }}
+            data-testid="button-ai-clipper"
+          >
+            <Sparkles className="w-3 h-3" />
+            <span className="hidden sm:inline">AI Clip</span>
           </button>
           <button
             onClick={() => setShowExport(true)}
@@ -208,6 +218,7 @@ export default function EditorPage() {
       </div>
 
       <ExportPortal />
+      <AiClipper />
     </div>
   );
 }
