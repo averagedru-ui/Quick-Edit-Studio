@@ -1,6 +1,7 @@
 import { useStore } from '@/lib/store';
 import { X, Download, Copy, Check, Video, FileJson, Loader } from 'lucide-react';
 import { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 type Tab = 'video' | 'json';
 type RecordState = 'idle' | 'recording' | 'processing' | 'done' | 'unsupported';
@@ -20,7 +21,7 @@ export default function ExportPortal() {
   if (!showExport) return null;
 
   const manifest = {
-    project: 'CLUTCH Studio Export',
+    project: 'CLIPR Export',
     version: '1.0.0',
     source: videoFile?.name || 'no-source-loaded',
     layers: layers.map(l => ({
@@ -62,7 +63,7 @@ export default function ExportPortal() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `clutch-project-${Date.now()}.json`;
+    a.download = `clipr-project-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -106,10 +107,10 @@ export default function ExportPortal() {
 
     // Attach audio if available
     try {
-      const audioCtx = (video as any)._clutchAudioCtx as AudioContext | undefined;
+      const audioCtx = (video as any)._cliprAudioCtx as AudioContext | undefined;
       if (audioCtx) {
         const dest = audioCtx.createMediaStreamDestination();
-        const gain = (video as any)._clutchGain as GainNode | undefined;
+        const gain = (video as any)._cliprGain as GainNode | undefined;
         if (gain) gain.connect(dest);
         dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
       }
@@ -170,7 +171,7 @@ export default function ExportPortal() {
     const url = URL.createObjectURL(videoBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `clutch-export-${Date.now()}.${ext}`;
+    a.download = `clipr-export-${Date.now()}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -187,10 +188,10 @@ export default function ExportPortal() {
     borderBottom: tab === t ? '1px solid rgba(190,242,100,0.3)' : '1px solid transparent',
   });
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4"
-      style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
+      style={{ backgroundColor: 'rgba(0,0,0,0.85)' }}
       onClick={() => setShowExport(false)}
       data-testid="export-portal"
     >
@@ -441,6 +442,7 @@ export default function ExportPortal() {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

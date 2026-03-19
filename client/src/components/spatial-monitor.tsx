@@ -44,12 +44,12 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   }, [videoUrl, videoRef]);
 
   useEffect(() => {
-    const video = videoRef.current as (HTMLVideoElement & { _clutchAudioCtx?: AudioContext; _clutchGain?: GainNode; _clutchPan?: StereoPannerNode }) | null;
+    const video = videoRef.current as (HTMLVideoElement & { _cliprAudioCtx?: AudioContext; _cliprGain?: GainNode; _cliprPan?: StereoPannerNode }) | null;
     if (!video || !videoUrl) return;
 
-    if (video._clutchAudioCtx) {
-      gainNodeRef.current = video._clutchGain || null;
-      panNodeRef.current = video._clutchPan || null;
+    if (video._cliprAudioCtx) {
+      gainNodeRef.current = video._cliprGain || null;
+      panNodeRef.current = video._cliprPan || null;
       return;
     }
 
@@ -61,9 +61,9 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
 
       source.connect(gain).connect(pan).connect(ctx.destination);
 
-      video._clutchAudioCtx = ctx;
-      video._clutchGain = gain;
-      video._clutchPan = pan;
+      video._cliprAudioCtx = ctx;
+      video._cliprGain = gain;
+      video._cliprPan = pan;
       gainNodeRef.current = gain;
       panNodeRef.current = pan;
     } catch (e) {
@@ -86,11 +86,11 @@ export default function SpatialMonitor({ onRequestImport }: SpatialMonitorProps)
   }, [activeLayer?.audio.gain, activeLayer?.audio.muted, activeLayer?.audio.pan, activeLayer?.id]);
 
   useEffect(() => {
-    const video = videoRef.current as (HTMLVideoElement & { _clutchAudioCtx?: AudioContext }) | null;
+    const video = videoRef.current as (HTMLVideoElement & { _cliprAudioCtx?: AudioContext }) | null;
     if (!video) return;
     if (isPlaying) {
-      if (video._clutchAudioCtx?.state === 'suspended') {
-        video._clutchAudioCtx.resume();
+      if (video._cliprAudioCtx?.state === 'suspended') {
+        video._cliprAudioCtx.resume();
       }
       video.play().catch(() => setIsPlaying(false));
     } else {

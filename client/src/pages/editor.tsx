@@ -56,7 +56,7 @@ export default function EditorPage() {
       >
         <div className="flex items-center gap-2">
           <h1 className="text-sm md:text-lg font-black tracking-tight text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
-            CLUTCH
+            CLIPR
           </h1>
           <span
             className="text-[8px] font-mono tracking-[0.25em] uppercase"

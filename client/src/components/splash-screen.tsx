@@ -12,7 +12,7 @@ export default function SplashScreen({ onComplete }: SplashScreenProps) {
   const [fadeOut, setFadeOut] = useState(false);
   const [cursorVisible, setCursorVisible] = useState(true);
 
-  const fullText = 'CLUTCH';
+  const fullText = 'CLIPR';
 
   const handleComplete = useCallback(() => {
     onComplete();
