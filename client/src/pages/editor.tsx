@@ -112,7 +112,7 @@ export default function EditorPage() {
         <div
           className="w-56 lg:w-60 shrink-0 flex flex-col overflow-hidden backdrop-blur-xl"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.015)',
+            backgroundColor: 'rgba(255,255,255,0.04)',
             borderRight: '1px solid rgba(255,255,255,0.05)',
           }}
         >
@@ -131,7 +131,7 @@ export default function EditorPage() {
         <div
           className="w-64 lg:w-72 shrink-0 overflow-auto p-3 space-y-4"
           style={{
-            backgroundColor: 'rgba(255,255,255,0.015)',
+            backgroundColor: 'rgba(255,255,255,0.04)',
             borderLeft: '1px solid rgba(255,255,255,0.05)',
           }}
         >

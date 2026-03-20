@@ -18,56 +18,6 @@ export default function ExportPortal() {
   const chunksRef = useRef<Blob[]>([]);
   const progressIntervalRef = useRef<number | null>(null);
 
-  if (!showExport) return null;
-
-  const manifest = {
-    project: 'CLIPR Export',
-    version: '1.0.0',
-    source: videoFile?.name || 'no-source-loaded',
-    layers: layers.map(l => ({
-      id: l.id,
-      name: l.name,
-      type: l.type,
-      visible: l.visible,
-      source: l.source,
-      target: l.target,
-      audio: {
-        gain: l.audio.gain,
-        muted: l.audio.muted,
-        solo: l.audio.solo,
-        pan: l.audio.pan,
-        eq: { low: l.audio.eqLow, mid: l.audio.eqMid, high: l.audio.eqHigh },
-      },
-      shape: l.shape,
-      opacity: l.opacity,
-    })),
-    snippets: snippets.map(s => ({
-      name: s.name,
-      start: s.startTime,
-      end: s.endTime,
-      summary: s.summary,
-    })),
-    exportedAt: new Date().toISOString(),
-  };
-
-  const jsonStr = JSON.stringify(manifest, null, 2);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(jsonStr);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleDownloadJson = () => {
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clipr-project-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const startRecording = useCallback(async () => {
     const video = videoRef?.current;
     if (!video) return;
@@ -105,7 +55,6 @@ export default function ExportPortal() {
       return;
     }
 
-    // Attach audio if available
     try {
       const audioCtx = (video as any)._cliprAudioCtx as AudioContext | undefined;
       if (audioCtx) {
@@ -164,6 +113,56 @@ export default function ExportPortal() {
       mediaRecorderRef.current.stop();
     }
   }, [videoRef]);
+
+  if (!showExport) return null;
+
+  const manifest = {
+    project: 'CLIPR Export',
+    version: '1.0.0',
+    source: videoFile?.name || 'no-source-loaded',
+    layers: layers.map(l => ({
+      id: l.id,
+      name: l.name,
+      type: l.type,
+      visible: l.visible,
+      source: l.source,
+      target: l.target,
+      audio: {
+        gain: l.audio.gain,
+        muted: l.audio.muted,
+        solo: l.audio.solo,
+        pan: l.audio.pan,
+        eq: { low: l.audio.eqLow, mid: l.audio.eqMid, high: l.audio.eqHigh },
+      },
+      shape: l.shape,
+      opacity: l.opacity,
+    })),
+    snippets: snippets.map(s => ({
+      name: s.name,
+      start: s.startTime,
+      end: s.endTime,
+      summary: s.summary,
+    })),
+    exportedAt: new Date().toISOString(),
+  };
+
+  const jsonStr = JSON.stringify(manifest, null, 2);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(jsonStr);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadJson = () => {
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clipr-project-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleDownloadVideo = () => {
     if (!videoBlob) return;
